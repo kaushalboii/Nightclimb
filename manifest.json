@@ -1,0 +1,11 @@
+{
+  "name": "Nightclimb",
+  "short_name": "Nightclimb",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#090a0d",
+  "theme_color": "#090a0d",
+  "description": "The Infinite Spiral Ascent - A 1-Bit Precision Tower Climber"
+}
+

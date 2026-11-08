@@ -1,0 +1,26 @@
+{
+  "name": "nightclimb",
+  "version": "1.0.0",
+  "description": "The Infinite Spiral Ascent - A 1-Bit Precision Tower Climber",
+  "main": "index.html",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "cap:init": "npx cap init Nightclimb com.nightclimb.game --web-dir .",
+    "cap:add:ios": "npx cap add ios",
+    "cap:add:android": "npx cap add android",
+    "cap:open:ios": "npx cap open ios",
+    "cap:open:android": "npx cap open android",
+    "cap:sync": "npx cap sync"
+  },
+  "keywords": [
+    "game",
+    "playdate",
+    "climber",
+    "1-bit",
+    "monochrome",
+    "arcade"
+  ],
+  "author": "",
+  "license": "MIT"
+}
+

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Nightclimb - The Infinite Ascent</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=VT323&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- CRT / 1-bit scanline & dither overlay -->
+    <div class="crt-overlay"></div>
+    <div class="vignette-overlay"></div>
+
+    <!-- HUD Overlay -->
+    <div id="hud" class="ui-layer">
+      <div class="hud-top">
+        <div class="altitude-box">
+          <span class="label">ALTITUDE</span>
+          <span id="altitude-val" class="number">0<span class="unit">m</span></span>
+        </div>
+        <div class="best-box">
+          <span class="label">RECORD</span>
+          <span id="record-val" class="number">0<span class="unit">m</span></span>
+        </div>
+      </div>
+
+      <div id="lore-banner" class="lore-banner hidden">
+        <div class="lore-bracket">[ LORE OF THE TOWER ]</div>
+        <p id="lore-text">"Beyond the veil of obsidian mist, the solitary spire pierces the heavens..."</p>
+      </div>
+    </div>
+
+    <!-- Virtual Crank (Playdate / Apple Watch style control) -->
+    <div id="crank-container" class="crank-container">
+      <div class="crank-base">
+        <div id="crank-arm" class="crank-arm">
+          <div id="crank-handle" class="crank-handle"></div>
+        </div>
+        <div class="crank-center"></div>
+      </div>
+      <div class="crank-label">CRANK / DRAG</div>
+    </div>
+
+    <!-- Start / Title Screen -->
+    <div id="title-screen" class="ui-layer screen active">
+      <div class="title-content">
+        <div class="gothic-badge">IORAMA INSPIRED</div>
+        <h1 class="game-title">NIGHTCLIMB</h1>
+        <p class="subtitle">THE INFINITE SPIRAL ASCENT</p>
+
+        <div class="instruction-box">
+          <div class="inst-item">
+            <span class="key-tag">MOUSE WHEEL</span> or <span class="key-tag">SWIPE / DRAG</span> to crank & climb
+          </div>
+          <div class="inst-item">
+            <span class="key-tag">↑ / ↓ ARROWS</span> or <span class="key-tag">W / S</span> on keyboard
+          </div>
+          <div class="inst-item">
+            Time your steps to slip past deadly traps and collapsing stone.
+          </div>
+        </div>
+
+        <button id="start-btn" class="gothic-btn">BEGIN ASCENT</button>
+        <div class="sound-notice">Audio synthesized via Web Audio API. Headphones recommended.</div>
+      </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameover-screen" class="ui-layer screen hidden">
+      <div class="gameover-content">
+        <div class="death-title">THE TOWER CLAIMS YOU</div>
+        <div class="death-cause" id="death-cause">Crushed by swinging scythe</div>
+
+        <div class="score-card">
+          <div class="stat-row">
+            <span>FINAL ALTITUDE</span>
+            <span id="final-alt" class="stat-highlight">0m</span>
+          </div>
+          <div class="stat-row">
+            <span>BEST RUN</span>
+            <span id="best-alt" class="stat-highlight">0m</span>
+          </div>
+          <div class="stat-row">
+            <span>TRAPS DODGED</span>
+            <span id="traps-dodged">0</span>
+          </div>
+          <div class="stat-row">
+            <span>LORE UNLOCKED</span>
+            <span id="lore-count">0 / 12</span>
+          </div>
+        </div>
+
+        <button id="retry-btn" class="gothic-btn">ASCEND AGAIN</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/audio.js"></script>
+  <script src="js/lore.js"></script>
+  <script src="js/obstacles.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/renderer.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
+
