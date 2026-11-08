@@ -74,8 +74,9 @@ class SoundEngine {
     osc.stop(now + 0.026);
   }
 
-  // Heavy stone step
+  // Stone step tap with haptic tick
   playStep() {
+    this.triggerHaptic('step');
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
     if (now - this.lastStepTime < 0.12) return;
@@ -96,6 +97,26 @@ class SoundEngine {
 
     osc.start(now);
     osc.stop(now + 0.065);
+  }
+
+  // Mobile Physical Haptic Feedback (iOS Taptic Engine + Android Vibration)
+  triggerHaptic(type = 'step') {
+    try {
+      const Haptics = window.Capacitor?.Plugins?.Haptics;
+      if (Haptics) {
+        if (type === 'step' || type === 'tick') {
+          Haptics.impact({ style: 'LIGHT' }).catch(() => {});
+        } else if (type === 'death') {
+          Haptics.notification({ type: 'ERROR' }).catch(() => {});
+        } else if (type === 'lore') {
+          Haptics.notification({ type: 'SUCCESS' }).catch(() => {});
+        }
+      } else if (navigator.vibrate) {
+        if (type === 'step') navigator.vibrate(10);
+        else if (type === 'death') navigator.vibrate([50, 60, 100]);
+        else if (type === 'lore') navigator.vibrate([20, 30, 40]);
+      }
+    } catch (_) {}
   }
 
   // Spike trap warning rumble / click
@@ -197,6 +218,7 @@ class SoundEngine {
 
   // Milestone Lore Chime (Eerie Gothic Bell)
   playLoreChime() {
+    this.triggerHaptic('lore');
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
     [330, 440, 660].forEach((freq, i) => {
