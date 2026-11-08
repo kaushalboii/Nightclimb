@@ -17,100 +17,103 @@
   <div id="game-container">
     <canvas id="gameCanvas"></canvas>
 
-    <!-- Top Right: Authentic White Pennant Flag HUD (Matches screenshot!) -->
-    <div id="flag-hud" class="flag-hud" title="View Unlocked Cantos">
-      <div class="flag-body">
-        <span id="step-counter" class="flag-number">0</span>
-        <span class="flag-icon">👣</span>
+    <!-- Centered Handheld Game Frame (Maintains 1:2 portrait proportion & UI alignment) -->
+    <div class="game-frame">
+      <!-- Top Right: Authentic White Pennant Flag HUD (Matches screenshots!) -->
+      <div id="flag-hud" class="flag-hud" title="View Unlocked Cantos">
+        <div class="flag-body">
+          <span id="step-counter" class="flag-number">0</span>
+          <span class="flag-icon">👣</span>
+        </div>
+        <div class="flag-tail"></div>
       </div>
-      <div class="flag-tail"></div>
-    </div>
 
-    <!-- Bottom: Poetry Verse Snippet (Matches screenshot!) -->
-    <div id="poem-snippet" class="poem-snippet">
-      My first thought was, he<br>lied in every word,
-    </div>
-
-    <!-- Virtual Crank (Bottom Right - for touch / Playdate crank feel) -->
-    <div id="crank-container" class="crank-container">
-      <div class="crank-base">
-        <div id="crank-arm" class="crank-arm">
-          <div id="crank-handle" class="crank-handle"></div>
-        </div>
-        <div class="crank-center"></div>
+      <!-- Bottom: Poetry Verse Snippet (Matches screenshots!) -->
+      <div id="poem-snippet" class="poem-snippet">
+        My first thought was, he<br>lied in every word,
       </div>
-      <div class="crank-label">CRANK / DRAG</div>
-    </div>
 
-    <!-- Title Screen -->
-    <div id="title-screen" class="ui-screen active">
-      <div class="screen-box">
-        <div class="pixel-badge">1-BIT DITHERED ASCENT</div>
-        <h1 class="main-title">NIGHTCLIMB</h1>
-        <p class="sub-title">CHILDE ROLAND TO THE DARK TOWER CAME</p>
-
-        <div class="control-hints">
-          <div><span class="key">MOUSE WHEEL</span> or <span class="key">SWIPE</span> to crank & ascend</div>
-          <div><span class="key">↑ / ↓</span> or <span class="key">W / S</span> keys to step</div>
-          <div>Dodge rhythmic spikes, swinging blades, and crumbling stone.</div>
+      <!-- Virtual Crank (Bottom Right - for touch / Playdate crank feel) -->
+      <div id="crank-container" class="crank-container">
+        <div class="crank-base">
+          <div id="crank-arm" class="crank-arm">
+            <div id="crank-handle" class="crank-handle"></div>
+          </div>
+          <div class="crank-center"></div>
         </div>
-
-        <button id="start-btn" class="pixel-btn">BEGIN ASCENT</button>
+        <div class="crank-label">CRANK / DRAG</div>
       </div>
-    </div>
 
-    <!-- Ancient Scroll View (Image 5 Recreation!) -->
-    <div id="scroll-modal" class="ui-screen hidden">
-      <div class="scroll-wrapper">
-        <!-- Top Roller -->
-        <div class="scroll-roller top">
-          <div class="roller-knob left"></div>
-          <div class="roller-bar"></div>
-          <div class="roller-knob right"></div>
-        </div>
+      <!-- Title Screen -->
+      <div id="title-screen" class="ui-screen active">
+        <div class="screen-box">
+          <div class="pixel-badge">1-BIT DITHERED ASCENT</div>
+          <h1 class="main-title">NIGHTCLIMB</h1>
+          <p class="sub-title">CHILDE ROLAND TO THE DARK TOWER CAME</p>
 
-        <!-- Parchment Sheet -->
-        <div class="scroll-sheet">
-          <div id="scroll-numeral" class="scroll-numeral">I</div>
-          <div id="scroll-body" class="scroll-body">
-            <!-- Stanza lines injected by JS -->
+          <div class="control-hints">
+            <div><span class="key">MOUSE WHEEL</span> or <span class="key">SWIPE</span> to crank & ascend</div>
+            <div><span class="key">↑ / ↓</span> or <span class="key">W / S</span> keys to step</div>
+            <div>Dodge rolling powder kegs, spikes, and crumbling stone.</div>
           </div>
-        </div>
 
-        <!-- Bottom Roller -->
-        <div class="scroll-roller bottom">
-          <div class="roller-knob left"></div>
-          <div class="roller-bar"></div>
-          <div class="roller-knob right"></div>
+          <button id="start-btn" class="pixel-btn">BEGIN ASCENT</button>
         </div>
-
-        <!-- Back Button -->
-        <button id="scroll-back-btn" class="scroll-back-btn">BACK</button>
       </div>
-    </div>
 
-    <!-- Game Over Screen -->
-    <div id="gameover-screen" class="ui-screen hidden">
-      <div class="screen-box">
-        <div class="death-banner">THE TOWER CLAIMS YOU</div>
-        <div id="death-cause" class="death-cause">Impaled upon rusted spikes</div>
+      <!-- Ancient Scroll View (Image 5 Recreation!) -->
+      <div id="scroll-modal" class="ui-screen hidden">
+        <div class="scroll-wrapper">
+          <!-- Top Roller -->
+          <div class="scroll-roller top">
+            <div class="roller-knob left"></div>
+            <div class="roller-bar"></div>
+            <div class="roller-knob right"></div>
+          </div>
 
-        <div class="stats-table">
-          <div class="stat-item">
-            <span>STEPS CLIMBED</span>
-            <span id="final-alt" class="stat-val">0 👣</span>
+          <!-- Parchment Sheet -->
+          <div class="scroll-sheet">
+            <div id="scroll-numeral" class="scroll-numeral">I</div>
+            <div id="scroll-body" class="scroll-body">
+              <!-- Stanza lines injected by JS -->
+            </div>
           </div>
-          <div class="stat-item">
-            <span>HIGHEST PEAK</span>
-            <span id="best-alt" class="stat-val">0 👣</span>
+
+          <!-- Bottom Roller -->
+          <div class="scroll-roller bottom">
+            <div class="roller-knob left"></div>
+            <div class="roller-bar"></div>
+            <div class="roller-knob right"></div>
           </div>
-          <div class="stat-item">
-            <span>CANTOS UNLOCKED</span>
-            <span id="lore-count" class="stat-val">0 / 6</span>
-          </div>
+
+          <!-- Back Button -->
+          <button id="scroll-back-btn" class="scroll-back-btn">BACK</button>
         </div>
+      </div>
 
-        <button id="retry-btn" class="pixel-btn">ASCEND AGAIN</button>
+      <!-- Game Over Screen -->
+      <div id="gameover-screen" class="ui-screen hidden">
+        <div class="screen-box">
+          <div class="death-banner">THE TOWER CLAIMS YOU</div>
+          <div id="death-cause" class="death-cause">Impaled upon rusted spikes</div>
+
+          <div class="stats-table">
+            <div class="stat-item">
+              <span>STEPS CLIMBED</span>
+              <span id="final-alt" class="stat-val">0 👣</span>
+            </div>
+            <div class="stat-item">
+              <span>HIGHEST PEAK</span>
+              <span id="best-alt" class="stat-val">0 👣</span>
+            </div>
+            <div class="stat-item">
+              <span>CANTOS UNLOCKED</span>
+              <span id="lore-count" class="stat-val">0 / 6</span>
+            </div>
+          </div>
+
+          <button id="retry-btn" class="pixel-btn">ASCEND AGAIN</button>
+        </div>
       </div>
     </div>
   </div>

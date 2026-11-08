@@ -5,12 +5,12 @@
   "main": "index.html",
   "scripts": {
     "start": "python3 -m http.server 8080",
-    "cap:init": "npx cap init Nightclimb com.nightclimb.game --web-dir .",
-    "cap:add:ios": "npx cap add ios",
-    "cap:add:android": "npx cap add android",
+    "build": "mkdir -p www && cp index.html manifest.json sw.js www/ && cp -R css js www/",
+    "cap:add:ios": "npm run build && npx cap add ios",
+    "cap:add:android": "npm run build && npx cap add android",
+    "cap:sync": "npm run build && npx cap sync",
     "cap:open:ios": "npx cap open ios",
-    "cap:open:android": "npx cap open android",
-    "cap:sync": "npx cap sync"
+    "cap:open:android": "npx cap open android"
   },
   "keywords": [
     "game",

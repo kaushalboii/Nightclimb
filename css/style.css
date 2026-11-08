@@ -48,18 +48,33 @@ html, body {
   image-rendering: crisp-edges;
 }
 
+/* Portrait Game Frame that aligns HUD and Crank with the game */
+.game-frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-width: 440px; /* Exact mobile / Playdate handheld proportion */
+  max-height: 880px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.game-frame * {
+  pointer-events: auto;
+}
+
 /* ==========================================================================
    TOP RIGHT: FLAG HUD (Matches screenshot 3 & 4)
    ========================================================================== */
 .flag-hud {
   position: absolute;
   top: 24px;
-  right: 20px;
+  right: 18px;
   display: flex;
   align-items: center;
   cursor: pointer;
   z-index: 20;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.9));
   transition: transform 0.15s ease;
 }
 
@@ -71,26 +86,26 @@ html, body {
 .flag-tail {
   width: 0;
   height: 0;
-  border-top: 15px solid transparent;
-  border-bottom: 15px solid transparent;
+  border-top: 14px solid transparent;
+  border-bottom: 14px solid transparent;
   border-right: 12px solid var(--white);
 }
 
 .flag-body {
   background: var(--white);
   color: var(--black);
-  height: 30px;
+  height: 28px;
   display: flex;
   align-items: center;
-  padding: 0 12px 0 6px;
+  padding: 0 10px 0 5px;
   font-family: 'VT323', monospace;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
   letter-spacing: 1px;
 }
 
 .flag-icon {
-  font-size: 14px;
+  font-size: 13px;
   margin-left: 4px;
 }
 
@@ -99,11 +114,11 @@ html, body {
    ========================================================================== */
 .poem-snippet {
   position: absolute;
-  bottom: 34px;
+  bottom: 28px;
   left: 50%;
   transform: translateX(-50%);
   text-align: center;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.6;
   letter-spacing: 1px;
   font-style: italic;
@@ -112,7 +127,7 @@ html, body {
   pointer-events: none;
   z-index: 15;
   width: 90%;
-  max-width: 440px;
+  max-width: 360px;
   transition: opacity 0.5s ease;
 }
 
@@ -125,16 +140,16 @@ html, body {
    ========================================================================== */
 .crank-container {
   position: absolute;
-  bottom: 24px;
-  right: 24px;
-  width: 88px;
-  height: 88px;
+  bottom: 20px;
+  right: 16px;
+  width: 80px;
+  height: 80px;
   z-index: 25;
   display: flex;
   flex-direction: column;
   align-items: center;
   cursor: grab;
-  opacity: 0.8;
+  opacity: 0.85;
   transition: opacity 0.2s ease;
 }
 
@@ -144,12 +159,12 @@ html, body {
 
 .crank-base {
   position: relative;
-  width: 64px;
-  height: 64px;
+  width: 58px;
+  height: 58px;
   border-radius: 50%;
   background: var(--black);
   border: 2px solid var(--white);
-  box-shadow: 0 2px 10px rgba(0,0,0,0.9);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.9);
 }
 
 .crank-center {
@@ -157,8 +172,8 @@ html, body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: var(--white);
   border: 2px solid var(--black);
@@ -168,7 +183,7 @@ html, body {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 28px;
+  width: 25px;
   height: 4px;
   background: var(--white);
   transform-origin: 0% 50%;
@@ -177,19 +192,19 @@ html, body {
 
 .crank-handle {
   position: absolute;
-  right: -7px;
-  top: -6px;
-  width: 16px;
-  height: 16px;
+  right: -6px;
+  top: -5px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background: var(--white);
   border: 2px solid var(--black);
 }
 
 .crank-label {
-  font-size: 8px;
-  letter-spacing: 1.5px;
-  margin-top: 5px;
+  font-size: 7px;
+  letter-spacing: 1px;
+  margin-top: 4px;
   color: var(--white);
 }
 
@@ -224,49 +239,49 @@ html, body {
 .screen-box {
   background: var(--black);
   border: 2px solid var(--white);
-  padding: 32px 24px;
-  max-width: 420px;
+  padding: 30px 20px;
+  max-width: 380px;
   width: 90%;
   text-align: center;
-  box-shadow: 0 0 30px rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 25px rgba(255, 255, 255, 0.12);
 }
 
 .pixel-badge {
   display: inline-block;
-  font-size: 9px;
+  font-size: 8px;
   letter-spacing: 2px;
   border: 1px solid var(--white);
   padding: 3px 8px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .main-title {
-  font-size: 38px;
+  font-size: 34px;
   font-weight: 900;
-  letter-spacing: 6px;
+  letter-spacing: 5px;
   margin-bottom: 4px;
 }
 
 .sub-title {
-  font-size: 10px;
-  letter-spacing: 3px;
-  margin-bottom: 24px;
+  font-size: 9px;
+  letter-spacing: 2.5px;
+  margin-bottom: 20px;
   color: #cccccc;
 }
 
 .control-hints {
   background: #111111;
   border: 1px solid #333333;
-  padding: 14px;
+  padding: 12px;
   font-size: 11px;
-  line-height: 1.8;
-  margin-bottom: 24px;
+  line-height: 1.7;
+  margin-bottom: 20px;
   text-align: left;
 }
 
 .key {
   border: 1px solid var(--white);
-  padding: 1px 5px;
+  padding: 1px 4px;
   font-weight: 700;
 }
 
@@ -274,9 +289,9 @@ html, body {
   background: var(--white);
   color: var(--black);
   border: 2px solid var(--white);
-  padding: 12px 28px;
+  padding: 11px 24px;
   font-family: 'Cinzel', serif;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 900;
   letter-spacing: 3px;
   cursor: pointer;
@@ -295,16 +310,15 @@ html, body {
 .scroll-wrapper {
   position: relative;
   width: 90%;
-  max-width: 360px;
+  max-width: 330px;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-/* Scroll Rollers */
 .scroll-roller {
   width: 100%;
-  height: 20px;
+  height: 18px;
   position: relative;
   display: flex;
   justify-content: center;
@@ -313,7 +327,7 @@ html, body {
 
 .roller-bar {
   width: 94%;
-  height: 16px;
+  height: 14px;
   background: repeating-linear-gradient(
     90deg,
     #000000,
@@ -326,8 +340,8 @@ html, body {
 
 .roller-knob {
   position: absolute;
-  width: 12px;
-  height: 24px;
+  width: 10px;
+  height: 20px;
   background: var(--white);
   border: 2px solid var(--black);
 }
@@ -340,30 +354,29 @@ html, body {
   right: 0;
 }
 
-/* White Parchment Sheet */
 .scroll-sheet {
   width: 90%;
   background: var(--white);
   color: var(--black);
-  padding: 24px 20px;
+  padding: 20px 16px;
   border-left: 2px solid var(--black);
   border-right: 2px solid var(--black);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+  box-shadow: 0 4px 18px rgba(0,0,0,0.8);
   text-align: center;
 }
 
 .scroll-numeral {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 900;
   letter-spacing: 2px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .scroll-body {
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.6;
   font-style: italic;
-  max-height: 380px;
+  max-height: 340px;
   overflow-y: auto;
 }
 
@@ -372,16 +385,16 @@ html, body {
 }
 
 .scroll-back-btn {
-  margin-top: 18px;
+  margin-top: 16px;
   background: transparent;
   color: var(--white);
   border: none;
   font-family: 'Cinzel', serif;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 900;
-  letter-spacing: 4px;
+  letter-spacing: 3px;
   cursor: pointer;
-  padding: 6px 16px;
+  padding: 4px 14px;
   transition: transform 0.15s ease;
 }
 
@@ -395,33 +408,33 @@ html, body {
    ========================================================================== */
 .death-banner {
   color: var(--white);
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 900;
   letter-spacing: 3px;
   margin-bottom: 6px;
 }
 
 .death-cause {
-  font-size: 12px;
+  font-size: 11px;
   font-style: italic;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
   color: #aaaaaa;
 }
 
 .stats-table {
   background: #111111;
   border: 1px solid #333333;
-  padding: 14px;
-  margin-bottom: 20px;
+  padding: 12px;
+  margin-bottom: 18px;
 }
 
 .stat-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 12px;
+  font-size: 11px;
   letter-spacing: 1px;
-  padding: 5px 0;
+  padding: 4px 0;
   border-bottom: 1px solid #222222;
 }
 
@@ -431,15 +444,5 @@ html, body {
 
 .stat-val {
   font-family: 'VT323', monospace;
-  font-size: 22px;
-}
-
-@media (max-width: 600px) {
-  .main-title {
-    font-size: 30px;
-  }
-  .flag-hud {
-    top: 16px;
-    right: 14px;
-  }
+  font-size: 20px;
 }
