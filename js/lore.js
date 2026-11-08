@@ -1,88 +1,180 @@
-// Lore of the Dark Spire - Milestone Fragments
-const TOWER_LORE = [
+// Stanzas from Robert Browning's "Childe Roland to the Dark Tower Came"
+const CHILDE_ROLAND_POEM = [
   {
-    altitude: 25,
-    title: "Canto I: The First Step",
-    text: "He who seeks the crown of stars must tread upon cold stone, unblessed and alone."
+    numeral: "I",
+    altitude: 10,
+    lines: [
+      "My first thought was, he",
+      "lied in every word,",
+      "",
+      "that hoary cripple, with",
+      "malicious eye",
+      "",
+      "askance to watch the",
+      "working of his lie",
+      "",
+      "on mine, and mouth scarce",
+      "able to afford",
+      "",
+      "suppression of the glee that",
+      "pursed and scored",
+      "",
+      "its edge at one more victim",
+      "gained thereby."
+    ],
+    snippet: "My first thought was, he lied in every word,"
   },
   {
-    altitude: 75,
-    title: "Canto II: The Slumbering Spire",
-    text: "The spiral has no beginning, nor does the stone remember those who bled before."
+    numeral: "II",
+    altitude: 60,
+    lines: [
+      "What else should he have done?",
+      "For mark! no sooner",
+      "",
+      "was I fairly found pledged",
+      "to the plain, after a world of sighs,",
+      "",
+      "than I turned into that ominous",
+      "tract which, all agree,",
+      "",
+      "hides the Dark Tower.",
+      "Yet destitute of pride,",
+      "",
+      "glad was the spirit that now",
+      "ceased to pine."
+    ],
+    snippet: "Glad was the spirit that now ceased to pine."
   },
   {
-    altitude: 150,
-    title: "Canto III: Cold Steel",
-    text: "The blades swing true in the black wind, blind to prayer, deaf to grief."
+    numeral: "III",
+    altitude: 140,
+    lines: [
+      "So, on I went. I think I never",
+      "saw such starved ignoble nature;",
+      "",
+      "nothing throve:",
+      "for flowers, as well expect",
+      "a cedar grove!",
+      "",
+      "No! penury, inertness and grimace,",
+      "in some strange sort, were the land's",
+      "portion. 'See Or shut your eyes,'",
+      "",
+      "said Nature peevishly,",
+      "'it nothing skills.'"
+    ],
+    snippet: "I think I never saw such starved ignoble nature."
   },
   {
+    numeral: "IV",
     altitude: 250,
-    title: "Canto IV: Falling Foundations",
-    text: "Tread softly, wanderer; the stair yields beneath the weight of hesitation."
+    lines: [
+      "A sudden little river",
+      "crossed my path",
+      "",
+      "as unexpected as a serpent",
+      "comes. No sluggish tide",
+      "",
+      "could have such black",
+      "and furious spite:",
+      "",
+      "which poured along, yet",
+      "seemed no deeper than a man's",
+      "throat could quench."
+    ],
+    snippet: "A sudden little river crossed my path."
   },
   {
+    numeral: "V",
     altitude: 400,
-    title: "Canto V: Eyes in the Mist",
-    text: "Stone gargoyles watch your ascent, measuring each breath before the void claims it."
+    lines: [
+      "What in the midst was dumb?",
+      "A tall black spire,",
+      "",
+      "blind as the fool's heart,",
+      "built of round rock,",
+      "",
+      "without a counterpart",
+      "in the whole world.",
+      "",
+      "The point of hope, the",
+      "zenith of despair."
+    ],
+    snippet: "A tall black spire, blind as the fool's heart."
   },
   {
+    numeral: "VI",
     altitude: 600,
-    title: "Canto VI: The Whispering Zenith",
-    text: "Higher still, where the air turns to frost and shadows cast their own light."
-  },
-  {
-    altitude: 850,
-    title: "Canto VII: The Iron Decree",
-    text: "None who reach the clouds remain mortal; their marrow becomes the spire's mortar."
-  },
-  {
-    altitude: 1200,
-    title: "Canto VIII: The Void's Embrace",
-    text: "Look not down, for the abyss looks back, wearing the face of Roland."
+    lines: [
+      "And yet Dauntless the",
+      "slug-horn to my lips I set,",
+      "",
+      "and blew. 'Childe Roland",
+      "to the Dark Tower came.'"
+    ],
+    snippet: "And blew: 'Childe Roland to the Dark Tower came.'"
   }
 ];
 
 class LoreManager {
   constructor() {
-    this.unlocked = new Set();
-    this.currentLore = null;
-    this.bannerTimer = null;
+    this.unlocked = [];
+    this.currentStanza = null;
+    this.isScrollOpen = false;
   }
 
   checkMilestone(altitude) {
-    for (const item of TOWER_LORE) {
-      if (altitude >= item.altitude && !this.unlocked.has(item.altitude)) {
-        this.unlocked.add(item.altitude);
-        this.showLore(item);
-        if (window.soundEngine) window.soundEngine.playLoreChime();
+    for (const item of CHILDE_ROLAND_POEM) {
+      if (altitude >= item.altitude && !this.unlocked.find(u => u.numeral === item.numeral)) {
+        this.unlocked.push(item);
+        this.currentStanza = item;
+        this.updatePoemSnippet(item);
+        window.soundEngine?.playLoreChime();
         return item;
       }
     }
     return null;
   }
 
-  showLore(item) {
-    const banner = document.getElementById('lore-banner');
-    const textEl = document.getElementById('lore-text');
-    if (!banner || !textEl) return;
+  updatePoemSnippet(item) {
+    const snippetEl = document.getElementById('poem-snippet');
+    if (snippetEl) {
+      const line1 = item.lines[0] || "";
+      const line2 = item.lines[1] || "";
+      snippetEl.innerHTML = `${line1}<br>${line2}`;
+      snippetEl.classList.remove('fade-out');
+    }
+  }
 
-    textEl.textContent = `"${item.text}" — ${item.title}`;
-    banner.classList.remove('hidden');
+  openScroll(index = -1) {
+    const modal = document.getElementById('scroll-modal');
+    if (!modal) return;
 
-    if (this.bannerTimer) clearTimeout(this.bannerTimer);
-    this.bannerTimer = setTimeout(() => {
-      banner.classList.add('hidden');
-    }, 6000);
+    const stanza = (index >= 0 && index < this.unlocked.length) 
+      ? this.unlocked[index] 
+      : (this.currentStanza || CHILDE_ROLAND_POEM[0]);
+
+    document.getElementById('scroll-numeral').textContent = stanza.numeral;
+    const bodyEl = document.getElementById('scroll-body');
+    bodyEl.innerHTML = stanza.lines.map(l => l === "" ? "<br>" : `<div class="scroll-line">${l}</div>`).join('');
+
+    modal.classList.remove('hidden');
+    this.isScrollOpen = true;
+  }
+
+  closeScroll() {
+    const modal = document.getElementById('scroll-modal');
+    if (modal) modal.classList.add('hidden');
+    this.isScrollOpen = false;
   }
 
   getUnlockedCount() {
-    return this.unlocked.size;
+    return this.unlocked.length;
   }
 
   getTotalCount() {
-    return TOWER_LORE.length;
+    return CHILDE_ROLAND_POEM.length;
   }
 }
 
 window.loreManager = new LoreManager();
-

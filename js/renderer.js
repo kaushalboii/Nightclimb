@@ -1,237 +1,199 @@
-// 1-Bit / Dithered Gothic Tower Spiral Renderer
+// Authentic 1-Bit Monochrome Bayer-Dithered Renderer for Nightclimb
+// Matches the visual style of "A Fool's Errand" & "Return of the Obra Dinn"
+
 class TowerRenderer {
-  constructor(canvas) {
-    this.canvas = canvas;
-    this.ctx = canvas.getContext('2d');
-    this.width = window.innerWidth;
-    this.height = window.innerHeight;
+  constructor(mainCanvas) {
+    this.mainCanvas = mainCanvas;
+    this.mainCtx = mainCanvas.getContext('2d');
 
-    this.towerRadius = 140; // Pixels
-    this.ledgeWidth = 45;
-    this.pitch = 70; // Vertical pixels per meter
-    this.spiralRate = (Math.PI * 2) / 9.0; // 1 full revolution every 9 meters
+    // Low-resolution 1-bit buffer (Crisp chunky pixels)
+    this.bufferW = 240;
+    this.bufferH = 420;
+    this.offscreen = document.createElement('canvas');
+    this.offscreen.width = this.bufferW;
+    this.offscreen.height = this.bufferH;
+    this.ctx = this.offscreen.getContext('2d', { willReadFrequently: true });
 
-    this.particles = [];
-    this.bats = [];
-    this.screenShake = 0;
+    // 4x4 Bayer Dither Matrix normalized to 0..255
+    this.bayer4x4 = [
+      [  0, 128,  32, 160 ],
+      [ 192,  64, 224,  96 ],
+      [  48, 176,  16, 144 ],
+      [ 240, 112, 208,  80 ]
+    ];
 
-    this.initBackgroundElements();
+    // Cylinder & Staircase settings
+    this.towerRadius = 52;
+    this.ledgeWidth = 26;
+    this.pitch = 30; // vertical pixels per meter
+    this.spiralRate = (Math.PI * 2) / 8.0; // 1 full revolution every 8 meters
+
+    this.torchFlicker = 0;
+    this.time = 0;
+
     this.resize();
     window.addEventListener('resize', () => this.resize());
   }
 
   resize() {
-    this.width = window.innerWidth;
-    this.height = window.innerHeight;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    this.canvas.width = this.width * dpr;
-    this.canvas.height = this.height * dpr;
-    this.ctx.scale(dpr, dpr);
-
-    // Dynamic tower radius based on screen size
-    this.towerRadius = Math.min(this.width * 0.28, 160);
-    this.ledgeWidth = Math.min(this.towerRadius * 0.35, 45);
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    this.mainCanvas.width = w;
+    this.mainCanvas.height = h;
+    this.mainCtx.imageSmoothingEnabled = false;
   }
 
-  initBackgroundElements() {
-    // Ambient floating embers & dust
-    for (let i = 0; i < 35; i++) {
-      this.particles.push({
-        x: Math.random() * window.innerWidth,
-        y: Math.random() * window.innerHeight,
-        vy: -0.3 - Math.random() * 0.6,
-        size: Math.random() < 0.8 ? 1.5 : 2.5,
-        alpha: 0.3 + Math.random() * 0.5
-      });
-    }
+  // Cylindrical projection from 1D altitude into 2.5D coordinates
+  project(alt, camAlt, centerX, centerY, radialOffset = 0) {
+    const dy = (alt - camAlt) * this.pitch;
+    const screenY = centerY - dy;
 
-    // Occasional silhouetted bats
-    for (let i = 0; i < 4; i++) {
-      this.bats.push({
-        x: Math.random() * window.innerWidth,
-        y: Math.random() * (window.innerHeight * 0.6),
-        vx: 1.2 + Math.random() * 1.5,
-        vy: (Math.random() - 0.5) * 0.8,
-        wing: Math.random() * 10
-      });
-    }
-  }
+    const angle = alt * this.spiralRate;
+    const r = this.towerRadius + radialOffset;
 
-  addShake(amount) {
-    this.screenShake = Math.max(this.screenShake, amount);
+    const sinA = Math.sin(angle);
+    const cosA = Math.cos(angle); // +1 = front, -1 = back
+
+    const screenX = centerX + sinA * r;
+
+    return {
+      x: Math.round(screenX),
+      y: Math.round(screenY),
+      z: cosA,
+      angle: angle,
+      isFront: cosA >= -0.15
+    };
   }
 
   render(player, obstacleManager, dt) {
+    this.time += dt;
+    this.torchFlicker = Math.sin(this.time * 18) * 3 + Math.cos(this.time * 29) * 2;
+
     const ctx = this.ctx;
-    const w = this.width;
-    const h = this.height;
+    const w = this.bufferW;
+    const h = this.bufferH;
 
-    // Screen shake decay
-    let offsetX = 0;
-    let offsetY = 0;
-    if (this.screenShake > 0) {
-      offsetX = (Math.random() * 2 - 1) * this.screenShake;
-      offsetY = (Math.random() * 2 - 1) * this.screenShake;
-      this.screenShake = Math.max(0, this.screenShake - dt * 15);
-    }
-
-    ctx.save();
-    ctx.translate(offsetX, offsetY);
-
-    // 1. Clear background (Night sky)
-    ctx.fillStyle = '#090a0d';
+    // 1. Clear with deep black
+    ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, w, h);
 
-    // 2. Distant Moon & Stars
-    this.drawBackground(ctx, w, h, player.altitude);
-
-    // Center of tower on screen
-    const centerX = w * 0.5;
-    // Keep player framed in lower-middle half of screen
-    const centerY = h * 0.62;
+    const centerX = Math.round(w * 0.52);
+    const centerY = Math.round(h * 0.58);
     const camAlt = player.altitude;
 
-    // 3. Render back-half of spiral (behind tower)
-    this.renderSpiralStairs(ctx, centerX, centerY, camAlt, false);
+    // 2. Distant Arch Window with Glowing Moon (Upper Left, like screenshot)
+    this.drawMoonWindow(ctx, w, h, camAlt);
 
-    // 4. Render main cylindrical Tower body
+    // 3. Render back-half of stairs (behind tower)
+    this.renderStairs(ctx, centerX, centerY, camAlt, false);
+
+    // 4. Render central Tower Cylinder & Wall Bricks
     this.renderTowerCylinder(ctx, centerX, centerY, camAlt, w, h);
 
-    // 5. Render front-half of spiral (in front of tower)
-    this.renderSpiralStairs(ctx, centerX, centerY, camAlt, true);
+    // 5. Render wall-mounted torches
+    this.renderWallTorches(ctx, centerX, centerY, camAlt);
 
-    // 6. Render Traps & Obstacles
-    this.renderObstacles(ctx, obstacleManager.obstacles, centerX, centerY, camAlt);
+    // 6. Render front-half of stairs
+    this.renderStairs(ctx, centerX, centerY, camAlt, true);
 
-    // 7. Render Player (Roland)
-    this.renderPlayer(ctx, player, centerX, centerY, camAlt);
+    // 7. Render Traps
+    this.renderTraps(ctx, obstacleManager.obstacles, centerX, centerY, camAlt);
 
-    // 8. Foreground fog & ambient particles
-    this.renderAtmosphere(ctx, w, h, dt);
+    // 8. Render Roland (The Torchbearer)
+    const rolandPos = this.project(player.altitude, camAlt, centerX, centerY, this.ledgeWidth * 0.5);
+    this.renderRoland(ctx, player, rolandPos);
 
-    ctx.restore();
+    // 9. Apply Dynamic Torchlight Radiance Map
+    this.applyTorchLightCone(ctx, rolandPos, centerX, centerY, camAlt);
+
+    // 10. Perform 1-BIT BAYER DITHER QUANTIZATION PASS
+    this.apply1BitDither(ctx, w, h);
+
+    // 11. Scale up onto main screen canvas with crisp pixel edges
+    this.mainCtx.drawImage(
+      this.offscreen,
+      0, 0, w, h,
+      0, 0, this.mainCanvas.width, this.mainCanvas.height
+    );
   }
 
-  drawBackground(ctx, w, h, altitude) {
-    // Distant gothic crescent moon
-    const moonX = w * 0.22;
-    const moonY = h * 0.18 + (altitude * 0.2) % 30; // Parallax slow drift
+  drawMoonWindow(ctx, w, h, camAlt) {
+    // Fixed window position in upper left sky
+    const winX = 38;
+    const winY = 65 + (camAlt * 0.5) % 180; // Slow parallax shift
+    if (winY > h + 50) return;
+
     ctx.save();
-    ctx.fillStyle = '#e8e5db';
+    // Arched window outline
+    ctx.fillStyle = '#222222';
     ctx.beginPath();
-    ctx.arc(moonX, moonY, 32, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Dark bite for crescent
-    ctx.fillStyle = '#090a0d';
-    ctx.beginPath();
-    ctx.arc(moonX + 12, moonY - 4, 28, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Distant mountain silhouettes
-    ctx.fillStyle = '#12141a';
-    ctx.beginPath();
-    ctx.moveTo(0, h * 0.85);
-    ctx.lineTo(w * 0.25, h * 0.72);
-    ctx.lineTo(w * 0.5, h * 0.82);
-    ctx.lineTo(w * 0.8, h * 0.68);
-    ctx.lineTo(w, h * 0.80);
-    ctx.lineTo(w, h);
-    ctx.lineTo(0, h);
+    ctx.arc(winX, winY - 14, 14, Math.PI, 0);
+    ctx.lineTo(winX + 14, winY + 18);
+    ctx.lineTo(winX - 14, winY + 18);
     ctx.closePath();
     ctx.fill();
+
+    // Glowing bright white crescent moon inside window
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(winX - 1, winY - 3, 10, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Moon shadow bite
+    ctx.fillStyle = '#222222';
+    ctx.beginPath();
+    ctx.arc(winX + 3, winY - 5, 9, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Soft stipple moonlight halo around window
+    const moonGrad = ctx.createRadialGradient(winX, winY - 4, 10, winX, winY - 4, 38);
+    moonGrad.addColorStop(0, 'rgba(255, 255, 255, 0.45)');
+    moonGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = moonGrad;
+    ctx.beginPath();
+    ctx.arc(winX, winY - 4, 38, 0, Math.PI * 2);
+    ctx.fill();
+
     ctx.restore();
-  }
-
-  // Cylindrical 1D-to-3D projection
-  projectPoint(altitude, camAlt, centerX, centerY, radialOffset = 0) {
-    const deltaAlt = altitude - camAlt;
-    const screenY = centerY - deltaAlt * this.pitch;
-
-    const angle = altitude * this.spiralRate;
-    const r = this.towerRadius + radialOffset;
-
-    const normX = Math.sin(angle);
-    const normZ = Math.cos(angle); // +1 is closest to camera, -1 is behind tower
-
-    const screenX = centerX + normX * r;
-
-    return {
-      x: screenX,
-      y: screenY,
-      z: normZ,
-      angle: angle,
-      isFront: normZ >= -0.15
-    };
   }
 
   renderTowerCylinder(ctx, centerX, centerY, camAlt, w, h) {
     ctx.save();
+    const r = this.towerRadius;
+    const leftX = centerX - r;
+    const rightX = centerX + r;
 
-    const tRadius = this.towerRadius;
-    const leftX = centerX - tRadius;
-    const rightX = centerX + tRadius;
-
-    // Tower base vertical fill
+    // Cylinder base shading (Grayscale for dither pass)
     const grad = ctx.createLinearGradient(leftX, 0, rightX, 0);
-    grad.addColorStop(0.0, '#101217');
-    grad.addColorStop(0.2, '#20242d');
-    grad.addColorStop(0.5, '#323846');
-    grad.addColorStop(0.8, '#1e222a');
-    grad.addColorStop(1.0, '#0c0e12');
+    grad.addColorStop(0.0, '#101010');
+    grad.addColorStop(0.2, '#353535');
+    grad.addColorStop(0.5, '#555555');
+    grad.addColorStop(0.8, '#303030');
+    grad.addColorStop(1.0, '#0a0a0a');
 
     ctx.fillStyle = grad;
-    ctx.fillRect(leftX, 0, tRadius * 2, h);
+    ctx.fillRect(leftX, 0, r * 2, h);
 
-    // Tower border lines (solid gothic masonry edges)
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(leftX, 0);
-    ctx.lineTo(leftX, h);
-    ctx.moveTo(rightX, 0);
-    ctx.lineTo(rightX, h);
-    ctx.stroke();
-
-    // Dithered horizontal stone brick courses with vertical parallax
-    ctx.strokeStyle = 'rgba(243, 239, 230, 0.08)';
+    // Stone masonry courses with dithered stone texture
+    ctx.strokeStyle = '#050505';
     ctx.lineWidth = 1;
-    const brickHeight = 24;
-    const scrollOffset = (camAlt * this.pitch) % brickHeight;
+    const rowH = 12;
+    const scroll = (camAlt * this.pitch) % rowH;
 
-    for (let y = -brickHeight; y < h + brickHeight; y += brickHeight) {
-      const lineY = y + scrollOffset;
+    for (let y = -rowH; y < h + rowH; y += rowH) {
+      const lineY = Math.round(y + scroll);
       ctx.beginPath();
-      ctx.moveTo(leftX + 4, lineY);
-      ctx.lineTo(rightX - 4, lineY);
+      ctx.moveTo(leftX, lineY);
+      ctx.lineTo(rightX, lineY);
       ctx.stroke();
 
-      // Masonry vertical notches
-      const rowIdx = Math.floor((camAlt * this.pitch + y) / brickHeight);
-      const shift = (rowIdx % 2) * 20;
-      for (let bx = leftX + 16 + shift; bx < rightX - 10; bx += 40) {
+      // Vertical block joints
+      const rowIdx = Math.floor((camAlt * this.pitch + y) / rowH);
+      const shift = (rowIdx % 2) * 12;
+      for (let bx = leftX + 8 + shift; bx < rightX - 4; bx += 20) {
         ctx.beginPath();
         ctx.moveTo(bx, lineY);
-        ctx.lineTo(bx, lineY + brickHeight);
-        ctx.stroke();
-      }
-    }
-
-    // Occasional gothic narrow arch windows on the tower
-    const windowInterval = 6.0; // Every 6 meters
-    const baseWinAlt = Math.floor((camAlt - 8) / windowInterval) * windowInterval;
-    for (let alt = baseWinAlt; alt < camAlt + 16; alt += windowInterval) {
-      const p = this.projectPoint(alt, camAlt, centerX, centerY, 0);
-      if (p.isFront && p.z > 0.4) {
-        ctx.fillStyle = '#060709';
-        ctx.strokeStyle = 'rgba(243, 239, 230, 0.25)';
-        ctx.lineWidth = 1.5;
-
-        const winW = 12 * p.z;
-        const winH = 28 * p.z;
-        ctx.beginPath();
-        ctx.roundRect(p.x - winW * 0.5, p.y - winH * 0.5, winW, winH, [winW * 0.5, winW * 0.5, 0, 0]);
-        ctx.fill();
+        ctx.lineTo(bx, lineY + rowH);
         ctx.stroke();
       }
     }
@@ -239,35 +201,29 @@ class TowerRenderer {
     ctx.restore();
   }
 
-  renderSpiralStairs(ctx, centerX, centerY, camAlt, renderFront) {
+  renderStairs(ctx, centerX, centerY, camAlt, renderFront) {
     ctx.save();
-
-    // Render a span of stairs around camera altitude
-    const stepCount = 90;
-    const stepDelta = 0.25; // meter per step
-    const startAlt = Math.floor((camAlt - 7) / stepDelta) * stepDelta;
+    const stepDelta = 0.28; // meter per step
+    const stepCount = 50;
+    const startAlt = Math.floor((camAlt - 5) / stepDelta) * stepDelta;
 
     for (let i = 0; i < stepCount; i++) {
       const alt = startAlt + i * stepDelta;
-      const inner = this.projectPoint(alt, camAlt, centerX, centerY, 0);
-      const outer = this.projectPoint(alt, camAlt, centerX, centerY, this.ledgeWidth);
+      const inner = this.project(alt, camAlt, centerX, centerY, 0);
+      const outer = this.project(alt, camAlt, centerX, centerY, this.ledgeWidth);
 
-      // Check whether this step is in front or behind the cylinder
       const isStepFront = (inner.z + outer.z) * 0.5 >= -0.05;
-
       if (isStepFront !== renderFront) continue;
 
-      // Draw the step ledge
-      const stepThick = 7;
-      const lightFactor = Math.max(0.15, (inner.z + 1.0) * 0.5);
+      const light = Math.max(0.25, (inner.z + 1.0) * 0.45);
+      const shade = Math.floor(light * 200);
 
-      // Step surface
-      ctx.fillStyle = renderFront 
-        ? `rgb(${Math.floor(210 * lightFactor)}, ${Math.floor(205 * lightFactor)}, ${Math.floor(195 * lightFactor)})`
-        : '#15171e';
-      ctx.strokeStyle = '#0a0b0e';
-      ctx.lineWidth = 1.5;
+      ctx.fillStyle = renderFront ? `rgb(${shade}, ${shade}, ${shade})` : '#181818';
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 1;
 
+      // Draw thick stone step block
+      const stepThick = 5;
       ctx.beginPath();
       ctx.moveTo(inner.x, inner.y);
       ctx.lineTo(outer.x, outer.y);
@@ -276,117 +232,109 @@ class TowerRenderer {
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
-    }
 
+      // Top step highlight
+      if (renderFront) {
+        ctx.strokeStyle = `rgb(${shade + 40}, ${shade + 40}, ${shade + 40})`;
+        ctx.beginPath();
+        ctx.moveTo(inner.x, inner.y);
+        ctx.lineTo(outer.x, outer.y);
+        ctx.stroke();
+      }
+    }
     ctx.restore();
   }
 
-  renderObstacles(ctx, obstacles, centerX, centerY, camAlt) {
-    for (const obs of obstacles) {
-      const p = this.projectPoint(obs.altitude, camAlt, centerX, centerY, this.ledgeWidth * 0.5);
+  renderWallTorches(ctx, centerX, centerY, camAlt) {
+    const torchInterval = 7.0; // Every 7 meters on tower wall
+    const baseAlt = Math.floor((camAlt - 7) / torchInterval) * torchInterval;
 
-      // Only draw when roughly in view
-      if (p.y < -50 || p.y > this.height + 50) continue;
+    for (let alt = baseAlt; alt < camAlt + 12; alt += torchInterval) {
+      const p = this.project(alt, camAlt, centerX, centerY, 2);
+      if (p.isFront && p.z > 0.25) {
+        ctx.save();
+        ctx.translate(p.x, p.y - 14);
+
+        // Torch iron wall sconce
+        ctx.fillStyle = '#050505';
+        ctx.fillRect(-2, -4, 4, 10);
+
+        // Torch Flame
+        const flameH = 6 + Math.random() * 3;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.moveTo(-3, -4);
+        ctx.lineTo(0, -4 - flameH);
+        ctx.lineTo(3, -4);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.restore();
+      }
+    }
+  }
+
+  renderTraps(ctx, obstacles, centerX, centerY, camAlt) {
+    for (const obs of obstacles) {
+      const p = this.project(obs.altitude, camAlt, centerX, centerY, this.ledgeWidth * 0.5);
+      if (p.y < -30 || p.y > this.bufferH + 30) continue;
 
       ctx.save();
       ctx.translate(p.x, p.y);
 
       if (obs.type === 'SPIKE') {
-        // Base plate
-        ctx.fillStyle = '#1c1f26';
-        ctx.strokeStyle = '#f3efe6';
+        // Base plate with dark holes
+        ctx.fillStyle = '#101010';
+        ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 1;
-        ctx.fillRect(-14, -2, 28, 4);
-        ctx.strokeRect(-14, -2, 28, 4);
+        ctx.fillRect(-10, -1, 20, 3);
+        ctx.strokeRect(-10, -1, 20, 3);
 
-        // Extended or shaking spikes
         if (obs.spikeHeight > 0.05) {
-          const maxH = 22;
-          const curH = maxH * obs.spikeHeight;
-
-          ctx.fillStyle = '#f3efe6';
-          ctx.strokeStyle = '#000000';
-          ctx.lineWidth = 1.5;
-
-          // 3 sharp spikes
-          [-8, 0, 8].forEach(sx => {
+          const maxH = 14;
+          const h = maxH * obs.spikeHeight;
+          ctx.fillStyle = '#ffffff';
+          [-6, 0, 6].forEach(sx => {
             ctx.beginPath();
-            ctx.moveTo(sx - 3, -2);
-            ctx.lineTo(sx, -2 - curH);
-            ctx.lineTo(sx + 3, -2);
+            ctx.moveTo(sx - 2, -1);
+            ctx.lineTo(sx, -1 - h);
+            ctx.lineTo(sx + 2, -1);
             ctx.closePath();
             ctx.fill();
-            ctx.stroke();
           });
         }
       } else if (obs.type === 'PENDULUM') {
-        const armLength = 80;
-        const currentAngle = obs.angle * 0.85; // Swing arc
+        const armL = 50;
+        ctx.rotate(obs.angle * 0.85);
 
-        ctx.rotate(currentAngle);
-        // Chain / rod
-        ctx.strokeStyle = '#b8bfc9';
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#aaaaaa';
+        ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(0, -armLength);
+        ctx.moveTo(0, -armL);
         ctx.lineTo(0, 0);
         ctx.stroke();
 
-        // Massive Crescent Scythe Blade
-        ctx.fillStyle = '#f3efe6';
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 2;
+        // Curved Scythe Blade
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.arc(0, 0, 22, -Math.PI * 0.4, Math.PI * 0.4);
-        ctx.arc(10, 0, 18, Math.PI * 0.35, -Math.PI * 0.35, true);
+        ctx.arc(0, 0, 14, -Math.PI * 0.4, Math.PI * 0.4);
+        ctx.arc(6, 0, 11, Math.PI * 0.35, -Math.PI * 0.35, true);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
       } else if (obs.type === 'CRUMBLE') {
         if (!obs.isCollapsed) {
-          ctx.translate(obs.shakeOffset, 0);
-          // Cracked stone plate
-          ctx.fillStyle = '#4a5260';
-          ctx.strokeStyle = '#000';
-          ctx.lineWidth = 2;
-          ctx.fillRect(-16, -3, 32, 6);
-          ctx.strokeRect(-16, -3, 32, 6);
-
-          if (obs.isTriggered) {
-            // Draw fracture cracks
-            ctx.strokeStyle = '#f3efe6';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(-10, -2);
-            ctx.lineTo(-2, 2);
-            ctx.lineTo(8, -1);
-            ctx.stroke();
-          }
+          ctx.translate(obs.shakeOffset * 0.5, 0);
+          ctx.fillStyle = '#444444';
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 1;
+          ctx.fillRect(-10, -2, 20, 4);
+          ctx.strokeRect(-10, -2, 20, 4);
         } else {
-          // Hollow missing gap marker
-          ctx.fillStyle = 'rgba(201, 74, 74, 0.4)';
-          ctx.fillRect(-14, -2, 28, 4);
-        }
-      } else if (obs.type === 'GARGOYLE') {
-        // Gargoyle head on inner wall
-        ctx.fillStyle = '#22262e';
-        ctx.strokeStyle = '#f3efe6';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.arc(-20, -10, 8, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-
-        // Fire / smoke burst across path
-        if (obs.isBlasting) {
-          ctx.fillStyle = Math.random() < 0.5 ? '#f3efe6' : '#cbb279';
-          for (let f = 0; f < 5; f++) {
-            const fx = -12 + Math.random() * 24;
-            const fy = -14 + Math.random() * 8;
-            ctx.beginPath();
-            ctx.arc(fx, fy, 4 + Math.random() * 5, 0, Math.PI * 2);
-            ctx.fill();
-          }
+          ctx.fillStyle = '#000000';
+          ctx.fillRect(-8, -2, 16, 4);
         }
       }
 
@@ -394,119 +342,152 @@ class TowerRenderer {
     }
   }
 
-  renderPlayer(ctx, player, centerX, centerY, camAlt) {
-    const p = this.projectPoint(player.altitude, camAlt, centerX, centerY, this.ledgeWidth * 0.5);
-
+  renderRoland(ctx, player, rolandPos) {
     ctx.save();
-    ctx.translate(p.x, p.y);
+    ctx.translate(rolandPos.x, rolandPos.y);
 
     if (player.isAlive) {
-      // Facing direction scale
-      const dirScale = player.direction;
-      ctx.scale(dirScale, 1);
+      ctx.scale(player.direction, 1);
 
-      // Character Shadow on stone step
-      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      // Footstep bob
+      const bob = Math.sin(player.walkCycle * Math.PI * 0.5) * 2;
+
+      // Legs / Dark Boots
+      ctx.fillStyle = '#050505';
+      ctx.fillRect(-3, -7, 2, 7 - bob);
+      ctx.fillRect(1, -7, 2, 7 + bob);
+
+      // Bright White Tunic / Body (Exact match to screenshot!)
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.ellipse(0, 0, 10, 4, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Roland / Wanderer Silhouette:
-      const legBob = Math.sin(player.walkCycle * Math.PI * 0.5) * 3;
-
-      // Legs / Boots
-      ctx.fillStyle = '#101217';
-      ctx.fillRect(-4, -10, 3, 10 - legBob);
-      ctx.fillRect(1, -10, 3, 10 + legBob);
-
-      // Tunic / Torso
-      ctx.fillStyle = '#2b313d';
-      ctx.strokeStyle = '#f3efe6';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.rect(-5, -24, 10, 14);
+      ctx.roundRect(-4, -18, 8, 11, [2, 2, 0, 0]);
       ctx.fill();
       ctx.stroke();
 
-      // Flowing Gothic Cloak
-      ctx.fillStyle = '#f3efe6';
+      // Cape fluttering back
+      ctx.fillStyle = '#222222';
       ctx.beginPath();
-      ctx.moveTo(-5, -24);
-      ctx.lineTo(-12 - Math.abs(player.velocity) * 0.4, -14);
-      ctx.lineTo(-6, -6);
+      ctx.moveTo(-4, -18);
+      ctx.lineTo(-8 - Math.abs(player.velocity) * 0.2, -12);
+      ctx.lineTo(-4, -8);
       ctx.closePath();
       ctx.fill();
 
-      // Head / Hood
-      ctx.fillStyle = '#060708';
-      ctx.strokeStyle = '#f3efe6';
-      ctx.lineWidth = 1.5;
+      // Squire Cap / Hood
+      ctx.fillStyle = '#111111';
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.arc(0, -29, 6, 0, Math.PI * 2);
+      ctx.arc(0, -21, 4.5, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
-      // Glowing monocle/eye slit
-      ctx.fillStyle = '#cbb279';
-      ctx.fillRect(2, -30, 2, 2);
+      // Roland holding Burning Torch in front hand!
+      const torchX = 5;
+      const torchY = -16;
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(torchX, torchY, 2, 8); // torch stick
+
+      // Burning flame head
+      const flameH = 6 + Math.random() * 3;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.moveTo(torchX - 1, torchY);
+      ctx.lineTo(torchX + 1, torchY - flameH);
+      ctx.lineTo(torchX + 3, torchY);
+      ctx.closePath();
+      ctx.fill();
 
     } else {
-      // Death dissolve / shatter animation
+      // Death dissolve particles
       const t = player.deathTimer;
-      ctx.fillStyle = '#f3efe6';
-      for (let i = 0; i < 16; i++) {
-        const angle = (i / 16) * Math.PI * 2;
-        const dist = t * 65 * (0.6 + (i % 3) * 0.3);
-        const px = Math.cos(angle) * dist;
-        const py = Math.sin(angle) * dist + (t * t * 90); // gravity
-        ctx.fillRect(px, py, 3, 3);
+      ctx.fillStyle = '#ffffff';
+      for (let i = 0; i < 14; i++) {
+        const ang = (i / 14) * Math.PI * 2;
+        const d = t * 45 * (0.5 + (i % 3) * 0.4);
+        ctx.fillRect(Math.cos(ang) * d, Math.sin(ang) * d + t * t * 60, 2, 2);
       }
     }
 
     ctx.restore();
   }
 
-  renderAtmosphere(ctx, w, h, dt) {
-    // Floating particles (dust & embers)
-    ctx.fillStyle = '#f3efe6';
-    for (const p of this.particles) {
-      p.y += p.vy;
-      if (p.y < 0) {
-        p.y = h;
-        p.x = Math.random() * w;
+  // Radial dithered light cone emitted from Roland's torch
+  applyTorchLightCone(ctx, rolandPos, centerX, centerY, camAlt) {
+    if (!rolandPos) return;
+
+    ctx.save();
+    // Torch position in buffer coordinates
+    const tx = rolandPos.x + 5;
+    const ty = rolandPos.y - 18;
+    const radius = 68 + this.torchFlicker;
+
+    // Torch radial light gradient
+    const grad = ctx.createRadialGradient(tx, ty, 6, tx, ty, radius);
+    grad.addColorStop(0.0, 'rgba(255, 255, 255, 0.95)');
+    grad.addColorStop(0.3, 'rgba(210, 210, 210, 0.7)');
+    grad.addColorStop(0.65, 'rgba(120, 120, 120, 0.35)');
+    grad.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
+
+    ctx.globalCompositeOperation = 'screen';
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(tx, ty, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Wall torches radiance
+    const torchInterval = 7.0;
+    const baseAlt = Math.floor((camAlt - 7) / torchInterval) * torchInterval;
+    for (let alt = baseAlt; alt < camAlt + 12; alt += torchInterval) {
+      const p = this.project(alt, camAlt, centerX, centerY, 2);
+      if (p.isFront && p.z > 0.25) {
+        const wGrad = ctx.createRadialGradient(p.x, p.y - 18, 4, p.x, p.y - 18, 42);
+        wGrad.addColorStop(0.0, 'rgba(255, 255, 255, 0.7)');
+        wGrad.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
+        ctx.fillStyle = wGrad;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y - 18, 42, 0, Math.PI * 2);
+        ctx.fill();
       }
-      ctx.globalAlpha = p.alpha;
-      ctx.fillRect(p.x, p.y, p.size, p.size);
     }
 
-    // Flying bats
-    ctx.globalAlpha = 0.75;
-    ctx.fillStyle = '#0a0c10';
-    for (const b of this.bats) {
-      b.x += b.vx;
-      b.y += b.vy;
-      b.wing += 0.2;
-      if (b.x > w + 20) {
-        b.x = -20;
-        b.y = Math.random() * (h * 0.5);
-      }
+    ctx.restore();
+  }
 
-      ctx.save();
-      ctx.translate(b.x, b.y);
-      const wingSpan = Math.sin(b.wing) * 6;
-      ctx.beginPath();
-      ctx.moveTo(-6, wingSpan);
-      ctx.lineTo(0, -2);
-      ctx.lineTo(6, wingSpan);
-      ctx.lineTo(0, 2);
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
+  // 1-Bit Bayer Matrix Quantization (Converts entire screen to true black and white)
+  apply1BitDither(ctx, w, h) {
+    const imgData = ctx.getImageData(0, 0, w, h);
+    const data = imgData.data;
+    const bayer = this.bayer4x4;
+
+    for (let y = 0; y < h; y++) {
+      const rowOffset = y * w * 4;
+      const bayerRow = bayer[y % 4];
+
+      for (let x = 0; x < w; x++) {
+        const idx = rowOffset + (x * 4);
+
+        // Perceptual grayscale luminance
+        const r = data[idx];
+        const g = data[idx + 1];
+        const b = data[idx + 2];
+        const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+
+        const threshold = bayerRow[x % 4];
+
+        // 1-bit quantization: strictly #ffffff (255) or #000000 (0)
+        const val = gray >= threshold ? 255 : 0;
+        data[idx] = val;
+        data[idx + 1] = val;
+        data[idx + 2] = val;
+        data[idx + 3] = 255;
+      }
     }
 
-    ctx.globalAlpha = 1.0;
+    ctx.putImageData(imgData, 0, 0);
   }
 }
 
 window.TowerRenderer = TowerRenderer;
-

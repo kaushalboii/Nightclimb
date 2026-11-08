@@ -3,40 +3,35 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Nightclimb - The Infinite Ascent</title>
+  <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="css/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=VT323&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;900&family=VT323&display=swap" rel="stylesheet">
 </head>
 <body>
   <div id="game-container">
     <canvas id="gameCanvas"></canvas>
 
-    <!-- CRT / 1-bit scanline & dither overlay -->
-    <div class="crt-overlay"></div>
-    <div class="vignette-overlay"></div>
-
-    <!-- HUD Overlay -->
-    <div id="hud" class="ui-layer">
-      <div class="hud-top">
-        <div class="altitude-box">
-          <span class="label">ALTITUDE</span>
-          <span id="altitude-val" class="number">0<span class="unit">m</span></span>
-        </div>
-        <div class="best-box">
-          <span class="label">RECORD</span>
-          <span id="record-val" class="number">0<span class="unit">m</span></span>
-        </div>
+    <!-- Top Right: Authentic White Pennant Flag HUD (Matches screenshot!) -->
+    <div id="flag-hud" class="flag-hud" title="View Unlocked Cantos">
+      <div class="flag-body">
+        <span id="step-counter" class="flag-number">0</span>
+        <span class="flag-icon">👣</span>
       </div>
-
-      <div id="lore-banner" class="lore-banner hidden">
-        <div class="lore-bracket">[ LORE OF THE TOWER ]</div>
-        <p id="lore-text">"Beyond the veil of obsidian mist, the solitary spire pierces the heavens..."</p>
-      </div>
+      <div class="flag-tail"></div>
     </div>
 
-    <!-- Virtual Crank (Playdate / Apple Watch style control) -->
+    <!-- Bottom: Poetry Verse Snippet (Matches screenshot!) -->
+    <div id="poem-snippet" class="poem-snippet">
+      My first thought was, he<br>lied in every word,
+    </div>
+
+    <!-- Virtual Crank (Bottom Right - for touch / Playdate crank feel) -->
     <div id="crank-container" class="crank-container">
       <div class="crank-base">
         <div id="crank-arm" class="crank-arm">
@@ -47,56 +42,75 @@
       <div class="crank-label">CRANK / DRAG</div>
     </div>
 
-    <!-- Start / Title Screen -->
-    <div id="title-screen" class="ui-layer screen active">
-      <div class="title-content">
-        <div class="gothic-badge">IORAMA INSPIRED</div>
-        <h1 class="game-title">NIGHTCLIMB</h1>
-        <p class="subtitle">THE INFINITE SPIRAL ASCENT</p>
+    <!-- Title Screen -->
+    <div id="title-screen" class="ui-screen active">
+      <div class="screen-box">
+        <div class="pixel-badge">1-BIT DITHERED ASCENT</div>
+        <h1 class="main-title">NIGHTCLIMB</h1>
+        <p class="sub-title">CHILDE ROLAND TO THE DARK TOWER CAME</p>
 
-        <div class="instruction-box">
-          <div class="inst-item">
-            <span class="key-tag">MOUSE WHEEL</span> or <span class="key-tag">SWIPE / DRAG</span> to crank & climb
-          </div>
-          <div class="inst-item">
-            <span class="key-tag">↑ / ↓ ARROWS</span> or <span class="key-tag">W / S</span> on keyboard
-          </div>
-          <div class="inst-item">
-            Time your steps to slip past deadly traps and collapsing stone.
+        <div class="control-hints">
+          <div><span class="key">MOUSE WHEEL</span> or <span class="key">SWIPE</span> to crank & ascend</div>
+          <div><span class="key">↑ / ↓</span> or <span class="key">W / S</span> keys to step</div>
+          <div>Dodge rhythmic spikes, swinging blades, and crumbling stone.</div>
+        </div>
+
+        <button id="start-btn" class="pixel-btn">BEGIN ASCENT</button>
+      </div>
+    </div>
+
+    <!-- Ancient Scroll View (Image 5 Recreation!) -->
+    <div id="scroll-modal" class="ui-screen hidden">
+      <div class="scroll-wrapper">
+        <!-- Top Roller -->
+        <div class="scroll-roller top">
+          <div class="roller-knob left"></div>
+          <div class="roller-bar"></div>
+          <div class="roller-knob right"></div>
+        </div>
+
+        <!-- Parchment Sheet -->
+        <div class="scroll-sheet">
+          <div id="scroll-numeral" class="scroll-numeral">I</div>
+          <div id="scroll-body" class="scroll-body">
+            <!-- Stanza lines injected by JS -->
           </div>
         </div>
 
-        <button id="start-btn" class="gothic-btn">BEGIN ASCENT</button>
-        <div class="sound-notice">Audio synthesized via Web Audio API. Headphones recommended.</div>
+        <!-- Bottom Roller -->
+        <div class="scroll-roller bottom">
+          <div class="roller-knob left"></div>
+          <div class="roller-bar"></div>
+          <div class="roller-knob right"></div>
+        </div>
+
+        <!-- Back Button -->
+        <button id="scroll-back-btn" class="scroll-back-btn">BACK</button>
       </div>
     </div>
 
     <!-- Game Over Screen -->
-    <div id="gameover-screen" class="ui-layer screen hidden">
-      <div class="gameover-content">
-        <div class="death-title">THE TOWER CLAIMS YOU</div>
-        <div class="death-cause" id="death-cause">Crushed by swinging scythe</div>
+    <div id="gameover-screen" class="ui-screen hidden">
+      <div class="screen-box">
+        <div class="death-banner">THE TOWER CLAIMS YOU</div>
+        <div id="death-cause" class="death-cause">Impaled upon rusted spikes</div>
 
-        <div class="score-card">
-          <div class="stat-row">
-            <span>FINAL ALTITUDE</span>
-            <span id="final-alt" class="stat-highlight">0m</span>
+        <div class="stats-table">
+          <div class="stat-item">
+            <span>STEPS CLIMBED</span>
+            <span id="final-alt" class="stat-val">0 👣</span>
           </div>
-          <div class="stat-row">
-            <span>BEST RUN</span>
-            <span id="best-alt" class="stat-highlight">0m</span>
+          <div class="stat-item">
+            <span>HIGHEST PEAK</span>
+            <span id="best-alt" class="stat-val">0 👣</span>
           </div>
-          <div class="stat-row">
-            <span>TRAPS DODGED</span>
-            <span id="traps-dodged">0</span>
-          </div>
-          <div class="stat-row">
-            <span>LORE UNLOCKED</span>
-            <span id="lore-count">0 / 12</span>
+          <div class="stat-item">
+            <span>CANTOS UNLOCKED</span>
+            <span id="lore-count" class="stat-val">0 / 6</span>
           </div>
         </div>
 
-        <button id="retry-btn" class="gothic-btn">ASCEND AGAIN</button>
+        <button id="retry-btn" class="pixel-btn">ASCEND AGAIN</button>
       </div>
     </div>
   </div>
@@ -108,6 +122,12 @@
   <script src="js/renderer.js"></script>
   <script src="js/input.js"></script>
   <script src="js/game.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
+  </script>
 </body>
 </html>
-
