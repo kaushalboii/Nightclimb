@@ -271,7 +271,7 @@ class TowerRenderer {
     b.restore();
   }
 
-  // Draw Traps (Rolling Powder Keg Barrel, Spikes, Pendulums)
+  // Draw Traps (Rolling Powder Keg Barrel, Spikes, Ghosts, Crumbling steps)
   drawTraps(b, obstacles, camStep, camY) {
     for (const obs of obstacles) {
       const stepIdx = obs.altitude * 5.0;
@@ -282,7 +282,60 @@ class TowerRenderer {
       b.save();
       b.translate(p.x, p.y);
 
-      if (obs.type === 'SPIKE') {
+      if (obs.type === 'BARREL') {
+        // Rolling Powder Keg / Barrel (Screenshot 2)
+        b.rotate(obs.angle);
+        b.fillStyle = '#ffffff';
+        b.strokeStyle = '#000000';
+        b.lineWidth = 1.5;
+
+        // Barrel cylinder body
+        b.beginPath();
+        b.roundRect(-10, -7, 20, 14, 3);
+        b.fill();
+        b.stroke();
+
+        // Iron hoops on barrel
+        b.strokeStyle = '#000000';
+        b.strokeRect(-6, -7, 3, 14);
+        b.strokeRect(3, -7, 3, 14);
+
+        // Fuse on barrel
+        b.beginPath();
+        b.moveTo(0, -7);
+        b.lineTo(3, -12);
+        b.stroke();
+        // Spark
+        b.fillStyle = '#ffffff';
+        b.fillRect(2, -14, 2, 2);
+
+      } else if (obs.type === 'GHOST') {
+        // Floating Spire Wraith (Screenshot 4)
+        const bobY = Math.sin(obs.bobTimer) * 4;
+        b.translate(0, -18 + bobY);
+
+        b.fillStyle = '#ffffff';
+        b.strokeStyle = '#000000';
+        b.lineWidth = 1.5;
+
+        // Ghost body sheet
+        b.beginPath();
+        b.arc(0, -6, 7, Math.PI, 0);
+        b.lineTo(7, 6);
+        b.lineTo(3, 4);
+        b.lineTo(0, 6);
+        b.lineTo(-4, 4);
+        b.lineTo(-7, 6);
+        b.closePath();
+        b.fill();
+        b.stroke();
+
+        // Dark hollow eyes
+        b.fillStyle = '#000000';
+        b.fillRect(-4, -6, 2, 4);
+        b.fillRect(2, -6, 2, 4);
+
+      } else if (obs.type === 'SPIKE') {
         // Base plate
         b.fillStyle = '#111111';
         b.strokeStyle = '#ffffff';
@@ -291,6 +344,8 @@ class TowerRenderer {
         if (obs.spikeHeight > 0.05) {
           const h = 12 * obs.spikeHeight;
           b.fillStyle = '#ffffff';
+          b.strokeStyle = '#000000';
+          b.lineWidth = 1;
           [-6, 0, 6].forEach(sx => {
             b.beginPath();
             b.moveTo(sx - 2, -2);
@@ -298,35 +353,9 @@ class TowerRenderer {
             b.lineTo(sx + 2, -2);
             b.closePath();
             b.fill();
+            b.stroke();
           });
         }
-      } else if (obs.type === 'PENDULUM') {
-        // Rolling Powder Keg / Barrel (Matches Screenshot 2!)
-        b.rotate(obs.angle * 0.7);
-        b.fillStyle = '#ffffff';
-        b.strokeStyle = '#000000';
-        b.lineWidth = 1.5;
-
-        // Barrel cylinder body
-        b.beginPath();
-        b.roundRect(-10, -8, 20, 16, 4);
-        b.fill();
-        b.stroke();
-
-        // Iron hoops on barrel
-        b.strokeStyle = '#000000';
-        b.strokeRect(-6, -8, 3, 16);
-        b.strokeRect(3, -8, 3, 16);
-
-        // Fuse on barrel
-        b.beginPath();
-        b.moveTo(0, -8);
-        b.lineTo(3, -13);
-        b.stroke();
-        // Spark
-        b.fillStyle = '#ffffff';
-        b.fillRect(2, -15, 2, 2);
-
       } else if (obs.type === 'CRUMBLE') {
         if (!obs.isCollapsed) {
           b.translate(obs.shakeOffset * 0.4, 0);
@@ -405,87 +434,102 @@ class TowerRenderer {
     b.scale(player.direction, 1);
 
     if (player.isAlive) {
-      // Walk animation cycle (Leg stepping up)
-      const walkProgress = (player.walkCycle % 4) / 4.0;
-      const isStepping = Math.abs(player.velocity) > 0.05;
+      const isMoving = Math.abs(player.velocity) > 0.05;
+      const walkPhase = Math.sin(player.walkCycle * Math.PI * 2);
 
-      // Leg positions:
-      let leadLegY = 0;
-      let rearLegY = 0;
-      if (isStepping) {
-        leadLegY = Math.sin(walkProgress * Math.PI * 2) * 4;
-        rearLegY = -leadLegY;
+      // Shadow on current step
+      b.fillStyle = '#000000';
+      b.fillRect(-7, 0, 14, 2);
+
+      // Back leg & Front leg animation
+      let frontLegY = 0;
+      let backLegY = 0;
+      let bodyBob = 0;
+
+      if (isMoving) {
+        // Front leg lifts up to step onto next stair
+        frontLegY = Math.max(0, walkPhase * 5);
+        backLegY = Math.max(0, -walkPhase * 3);
+        bodyBob = Math.abs(walkPhase) * 2;
       }
 
-      // Shadow on step
+      // 1. Back leg (Solid black)
       b.fillStyle = '#000000';
-      b.fillRect(-6, -1, 12, 2);
+      b.fillRect(-5, -8 + backLegY - bodyBob, 3, 8 - backLegY);
 
-      // Boots & Legs (Solid Black)
-      b.fillStyle = '#000000';
-      // Rear leg
-      b.fillRect(-4, -8 + rearLegY, 3, 8 - rearLegY);
-      // Lead leg (stepping forward/up onto stone)
-      b.fillRect(2, -8 + leadLegY, 3, 8 - leadLegY);
+      // 2. Front leg stepping up
+      b.fillRect(1, -8 - frontLegY - bodyBob, 4, 8 + frontLegY);
 
-      // Cloak / Backpack (Black silhouette behind)
+      // 3. Dark Cloak / Pack behind body
       b.fillStyle = '#000000';
       b.beginPath();
-      b.moveTo(-5, -20);
-      b.lineTo(-10, -14);
-      b.lineTo(-6, -7);
+      b.moveTo(-6, -20 - bodyBob);
+      b.lineTo(-12, -13 - bodyBob);
+      b.lineTo(-6, -7 - bodyBob);
       b.closePath();
       b.fill();
 
-      // White Tunic / Body (Bright solid white, bold black outline)
+      // 4. White Tunic (Bright crisp white, bold black contour)
       b.fillStyle = '#ffffff';
       b.strokeStyle = '#000000';
       b.lineWidth = 1.5;
       b.beginPath();
-      b.roundRect(-4, -19, 9, 12, [2, 2, 0, 0]);
+      b.roundRect(-5, -19 - bodyBob, 10, 12, [3, 3, 0, 0]);
       b.fill();
       b.stroke();
 
-      // Squire Hood / Head
+      // Belt
+      b.fillStyle = '#000000';
+      b.fillRect(-5, -10 - bodyBob, 10, 2);
+
+      // 5. Squire Hood (Black)
       b.fillStyle = '#000000';
       b.beginPath();
-      b.arc(1, -22, 5, 0, Math.PI * 2);
+      b.arc(0, -23 - bodyBob, 5.5, 0, Math.PI * 2);
       b.fill();
 
-      // Face profile
-      b.fillStyle = '#ffffff';
+      // Pointy hood back
       b.beginPath();
-      b.arc(3, -22, 3, -Math.PI * 0.4, Math.PI * 0.4);
-      b.lineTo(2, -19);
+      b.moveTo(-4, -22 - bodyBob);
+      b.lineTo(-9, -20 - bodyBob);
+      b.lineTo(-4, -18 - bodyBob);
       b.closePath();
       b.fill();
 
-      // Eye
-      b.fillStyle = '#000000';
-      b.fillRect(4, -23, 1, 1);
-
-      // Arm holding Torch forward
+      // 6. Face Profile & Eye
       b.fillStyle = '#ffffff';
-      b.fillRect(2, -16, 5, 3); // sleeve
+      b.beginPath();
+      b.arc(2, -23 - bodyBob, 3.5, -Math.PI * 0.45, Math.PI * 0.45);
+      b.lineTo(1, -19 - bodyBob);
+      b.closePath();
+      b.fill();
+
+      // Eye dot
+      b.fillStyle = '#000000';
+      b.fillRect(3.5, -24 - bodyBob, 1.5, 1.5);
+
+      // 7. Arm reaching forward holding Wooden Torch
+      b.fillStyle = '#ffffff';
+      b.fillRect(2, -16 - bodyBob, 6, 4);
       b.strokeStyle = '#000000';
       b.lineWidth = 1;
-      b.strokeRect(2, -16, 5, 3);
+      b.strokeRect(2, -16 - bodyBob, 6, 4);
 
-      // Torch Stick (Black)
-      const torchX = 7;
-      const torchY = -15;
+      // Torch Stick (Black wood)
+      const torchX = 8;
+      const torchY = -15 - bodyBob;
       b.fillStyle = '#000000';
-      b.fillRect(torchX, torchY - 6, 2, 9);
+      b.fillRect(torchX, torchY - 8, 2.5, 12);
 
-      // Burning Flame (White with black outline & flicker!)
-      const flameH = 7 + Math.random() * 3;
+      // 8. Burning Flame Head (White with black contour & dynamic flickering!)
+      const flameH = 8 + Math.sin(this.time * 25) * 3 + Math.random() * 2;
       b.fillStyle = '#ffffff';
       b.strokeStyle = '#000000';
       b.lineWidth = 1;
       b.beginPath();
-      b.moveTo(torchX - 2, torchY - 6);
-      b.lineTo(torchX + 1, torchY - 6 - flameH);
-      b.lineTo(torchX + 4, torchY - 6);
+      b.moveTo(torchX - 2, torchY - 8);
+      b.lineTo(torchX + 1.25, torchY - 8 - flameH);
+      b.lineTo(torchX + 4.5, torchY - 8);
       b.closePath();
       b.fill();
       b.stroke();

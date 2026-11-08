@@ -42,21 +42,26 @@ class Player {
       return;
     }
 
-    // Smooth lerp towards targetAltitude for natural physical feel
+    // Smooth responsive tracking towards target altitude
     const diff = this.targetAltitude - this.altitude;
-    this.velocity = diff * 12.0; // Responsive tracking
+    this.velocity = diff * 14.0;
     this.altitude += this.velocity * dt;
 
     if (this.altitude > this.highestAltitude) {
       this.highestAltitude = this.altitude;
     }
 
-    // Update walk animation & footstep audio
-    const distTraveled = Math.abs(this.altitude - this.lastStepAltitude);
-    if (distTraveled > 0.35) {
-      this.lastStepAltitude = this.altitude;
-      this.walkCycle = (this.walkCycle + 1) % 4;
-      window.soundEngine?.playStep();
+    // Continuous walking animation tied directly to climbing speed
+    const speed = Math.abs(this.velocity);
+    if (speed > 0.02) {
+      this.walkCycle += speed * dt * 5.0;
+
+      // Trigger footstep sound per stone step
+      const stepDist = Math.abs(this.altitude - this.lastStepAltitude);
+      if (stepDist >= 0.2) {
+        this.lastStepAltitude = this.altitude;
+        window.soundEngine?.playStep();
+      }
     }
   }
 

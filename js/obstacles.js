@@ -1,23 +1,25 @@
 // Obstacle & Trap System for Nightclimb
+// Matches Iorama's "A Fool's Errand" traps (Barrels, Spikes, Ghosts, Crumbling steps)
+
 class ObstacleManager {
   constructor() {
     this.obstacles = [];
-    this.nextSpawnAltitude = 12.0; // Start traps after a peaceful tutorial climb
+    this.nextSpawnAltitude = 8.0; // Start obstacles early
     this.generatedUpTo = 0;
     this.dodgedCount = 0;
   }
 
   reset() {
     this.obstacles = [];
-    this.nextSpawnAltitude = 12.0;
+    this.nextSpawnAltitude = 8.0;
     this.generatedUpTo = 0;
     this.dodgedCount = 0;
   }
 
   update(dt, playerAltitude) {
-    // Generate new obstacles ahead of player
+    // Generate ahead of player
     while (this.generatedUpTo < playerAltitude + 30) {
-      this.generateChunk();
+      this.generateNext();
     }
 
     // Clean up old obstacles far below
@@ -32,43 +34,44 @@ class ObstacleManager {
       return true;
     });
 
-    // Update trap internal state / cycles
     for (const obs of this.obstacles) {
       obs.update(dt, playerAltitude);
     }
   }
 
-  generateChunk() {
+  generateNext() {
     const startAlt = Math.max(this.nextSpawnAltitude, this.generatedUpTo);
-    const difficulty = Math.min(startAlt / 250.0, 1.0); // 0.0 to 1.0
+    const difficulty = Math.min(startAlt / 200.0, 1.0);
 
-    // Choose obstacle type
-    const types = ['SPIKE', 'PENDULUM'];
-    if (startAlt > 25) types.push('CRUMBLE');
-    if (startAlt > 60) types.push('GARGOYLE');
+    // Trap types from A Fool's Errand:
+    // BARREL: Rolling down steps
+    // SPIKE: Popping out of stone
+    // GHOST: Floating spirit
+    // CRUMBLE: Fracturing steps
+    const types = ['BARREL', 'SPIKE'];
+    if (startAlt > 18) types.push('GHOST');
+    if (startAlt > 35) types.push('CRUMBLE');
 
-    const chosenType = types[Math.floor(Math.random() * types.length)];
-    let gap = 5.0 - difficulty * 2.2 + (Math.random() * 2.0); // 2.5m - 5m spacing
+    const chosen = types[Math.floor(Math.random() * types.length)];
+    const gap = 4.5 - difficulty * 1.8 + Math.random() * 2.0;
 
     let obs = null;
-    switch (chosenType) {
+    switch (chosen) {
+      case 'BARREL':
+        obs = new BarrelTrap(startAlt);
+        break;
       case 'SPIKE':
         obs = new SpikeTrap(startAlt);
         break;
-      case 'PENDULUM':
-        obs = new PendulumTrap(startAlt);
+      case 'GHOST':
+        obs = new GhostTrap(startAlt);
         break;
       case 'CRUMBLE':
         obs = new CrumbleTrap(startAlt);
         break;
-      case 'GARGOYLE':
-        obs = new GargoyleTrap(startAlt);
-        break;
     }
 
-    if (obs) {
-      this.obstacles.push(obs);
-    }
+    if (obs) this.obstacles.push(obs);
 
     this.nextSpawnAltitude = startAlt + gap;
     this.generatedUpTo = startAlt + gap;
@@ -76,8 +79,7 @@ class ObstacleManager {
 
   checkCollision(player) {
     for (const obs of this.obstacles) {
-      const hit = obs.checkHit(player);
-      if (hit) {
+      if (obs.checkHit(player)) {
         return { isHit: true, cause: obs.deathMessage };
       }
     }
@@ -85,16 +87,38 @@ class ObstacleManager {
   }
 }
 
-// 1. Spike Trap
+// 1. Rolling Powder Keg / Barrel (Screenshot 2)
+class BarrelTrap {
+  constructor(altitude) {
+    this.type = 'BARREL';
+    this.altitude = altitude;
+    this.rollSpeed = 2.4; // Rolls downward along spiral
+    this.angle = 0;
+    this.deathMessage = "Crushed by a rolling powder keg";
+  }
+
+  update(dt, playerAltitude) {
+    // Barrel rolls DOWN the stairs towards player
+    this.altitude -= this.rollSpeed * dt;
+    this.angle += dt * 6.0; // rotation
+  }
+
+  checkHit(player) {
+    const dist = Math.abs(player.altitude - this.altitude);
+    return dist < 0.65;
+  }
+}
+
+// 2. Popping Floor Spikes (Screenshots 3 & 4)
 class SpikeTrap {
   constructor(altitude) {
     this.type = 'SPIKE';
     this.altitude = altitude;
-    this.width = 1.2; // Width in meters along the path
-    this.period = 2.4 + Math.random() * 0.8; // Cycle duration
+    this.width = 1.0;
+    this.period = 2.4 + Math.random() * 0.8;
     this.timer = Math.random() * this.period;
-    this.state = 'DORMANT'; // DORMANT, WARNING, EXTENDED
-    this.spikeHeight = 0; // 0 to 1
+    this.state = 'DORMANT';
+    this.spikeHeight = 0;
     this.deathMessage = "Impaled upon rusted spikes";
     this.warnSoundPlayed = false;
     this.snapSoundPlayed = false;
@@ -102,25 +126,21 @@ class SpikeTrap {
 
   update(dt, playerAltitude) {
     this.timer = (this.timer + dt) % this.period;
-    const progress = this.timer / this.period;
+    const p = this.timer / this.period;
 
-    // 0.0 - 0.5: Dormant
-    // 0.5 - 0.7: Warning (spikes shake/peek)
-    // 0.7 - 0.95: Extended (Lethal!)
-    // 0.95 - 1.0: Retract
-    if (progress < 0.55) {
+    if (p < 0.55) {
       this.state = 'DORMANT';
       this.spikeHeight = 0;
       this.warnSoundPlayed = false;
       this.snapSoundPlayed = false;
-    } else if (progress < 0.72) {
+    } else if (p < 0.72) {
       this.state = 'WARNING';
-      this.spikeHeight = 0.2 + Math.sin(this.timer * 40) * 0.08;
+      this.spikeHeight = 0.25 + Math.sin(this.timer * 40) * 0.1;
       if (!this.warnSoundPlayed && Math.abs(playerAltitude - this.altitude) < 8) {
         window.soundEngine?.playTrapWarning();
         this.warnSoundPlayed = true;
       }
-    } else if (progress < 0.94) {
+    } else if (p < 0.94) {
       this.state = 'EXTENDED';
       this.spikeHeight = 1.0;
       if (!this.snapSoundPlayed && Math.abs(playerAltitude - this.altitude) < 8) {
@@ -136,59 +156,43 @@ class SpikeTrap {
   checkHit(player) {
     if (this.state === 'EXTENDED') {
       const dist = Math.abs(player.altitude - this.altitude);
-      if (dist < this.width * 0.45) {
-        return true;
-      }
+      return dist < this.width * 0.5;
     }
     return false;
   }
 }
 
-// 2. Pendulum Scythe
-class PendulumTrap {
+// 3. Floating Ghost / Spire Wraith (Screenshot 4)
+class GhostTrap {
   constructor(altitude) {
-    this.type = 'PENDULUM';
+    this.type = 'GHOST';
     this.altitude = altitude;
-    this.width = 1.0;
-    this.speed = 1.6 + Math.random() * 0.8;
-    this.timer = Math.random() * Math.PI * 2;
-    this.angle = 0; // -1 to 1 across path
-    this.deathMessage = "Severed by the Great Pendulum";
-    this.whooshPlayed = false;
+    this.bobTimer = Math.random() * Math.PI * 2;
+    this.floatOffset = 0;
+    this.deathMessage = "Touched by the wandering spire wraith";
   }
 
   update(dt, playerAltitude) {
-    this.timer += dt * this.speed;
-    const prevAngle = this.angle;
-    this.angle = Math.sin(this.timer);
-
-    // Play whoosh when passing near center (angle crosses 0)
-    if (Math.sign(prevAngle) !== Math.sign(this.angle) && Math.abs(playerAltitude - this.altitude) < 8) {
-      window.soundEngine?.playWhoosh();
-    }
+    this.bobTimer += dt * 3.0;
+    this.floatOffset = Math.sin(this.bobTimer) * 0.4;
   }
 
   checkHit(player) {
-    const dist = Math.abs(player.altitude - this.altitude);
-    // Blade hits when passing close to middle of path (-0.28 to +0.28)
-    if (dist < 0.7 && Math.abs(this.angle) < 0.28) {
-      return true;
-    }
-    return false;
+    const dist = Math.abs(player.altitude - (this.altitude + this.floatOffset));
+    return dist < 0.7;
   }
 }
 
-// 3. Crumble Trap
+// 4. Crumbling Stone Step
 class CrumbleTrap {
   constructor(altitude) {
     this.type = 'CRUMBLE';
     this.altitude = altitude;
-    this.width = 1.4;
     this.isTriggered = false;
-    this.triggerTimer = 0.85; // Seconds before collapse
+    this.triggerTimer = 0.8;
     this.isCollapsed = false;
     this.shakeOffset = 0;
-    this.deathMessage = "Fell into the bottomless abyss";
+    this.deathMessage = "Fell into the bottomless spire abyss";
   }
 
   update(dt, playerAltitude) {
@@ -206,51 +210,12 @@ class CrumbleTrap {
 
   checkHit(player) {
     const dist = Math.abs(player.altitude - this.altitude);
-    if (dist < this.width * 0.5) {
-      if (!this.isTriggered) {
-        this.isTriggered = true;
-      }
-      if (this.isCollapsed) {
-        return true; // Stepped on thin air / collapsed section
-      }
-    }
-    return false;
-  }
-}
-
-// 4. Gargoyle Fire Shooter
-class GargoyleTrap {
-  constructor(altitude) {
-    this.type = 'GARGOYLE';
-    this.altitude = altitude;
-    this.width = 1.3;
-    this.period = 3.2 + Math.random() * 0.6;
-    this.timer = Math.random() * this.period;
-    this.isBlasting = false;
-    this.deathMessage = "Incinerated by stone gargoyle breath";
-  }
-
-  update(dt, playerAltitude) {
-    this.timer = (this.timer + dt) % this.period;
-    const progress = this.timer / this.period;
-
-    // Blast for 25% of period
-    this.isBlasting = (progress > 0.65 && progress < 0.90);
-    if (this.isBlasting && Math.abs(playerAltitude - this.altitude) < 7 && Math.random() < 0.1) {
-      window.soundEngine?.playTrapWarning();
-    }
-  }
-
-  checkHit(player) {
-    if (this.isBlasting) {
-      const dist = Math.abs(player.altitude - this.altitude);
-      if (dist < this.width * 0.55) {
-        return true;
-      }
+    if (dist < 0.6) {
+      if (!this.isTriggered) this.isTriggered = true;
+      if (this.isCollapsed) return true;
     }
     return false;
   }
 }
 
 window.obstacleManager = new ObstacleManager();
-
