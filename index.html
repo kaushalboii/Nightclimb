@@ -7,6 +7,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Nightclimb - The Infinite Ascent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;900&family=VT323&display=swap" rel="stylesheet">
   <style>
     * {
       box-sizing: border-box;
@@ -21,12 +24,14 @@
       height: 100%;
       overflow: hidden;
       background-color: #000000;
+      font-family: 'Cinzel', serif;
+      color: #ffffff;
       display: flex;
       justify-content: center;
       align-items: center;
     }
 
-    #container {
+    #game-container {
       position: relative;
       width: 100vw;
       height: 100vh;
@@ -34,6 +39,7 @@
       justify-content: center;
       align-items: center;
       background-color: #000000;
+      overflow: hidden;
     }
 
     canvas {
@@ -45,65 +51,977 @@
       max-width: 100vw;
       max-height: 100vh;
     }
+
+    /* Floating UI elements overlaying canvas frame */
+    .ui-overlay {
+      position: absolute;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .ui-overlay * {
+      pointer-events: auto;
+    }
+
+    /* Pennant Swallowtail Flag HUD in Top Right (Matches Screenshot!) */
+    .flag-hud {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      filter: drop-shadow(0 2px 5px rgba(0,0,0,0.9));
+      transition: transform 0.15s ease;
+    }
+
+    .flag-hud:hover {
+      transform: scale(1.08);
+    }
+
+    .flag-tail {
+      width: 0;
+      height: 0;
+      border-top: 15px solid transparent;
+      border-bottom: 15px solid transparent;
+      border-right: 14px solid #ffffff;
+    }
+
+    .flag-body {
+      background: #ffffff;
+      color: #000000;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      padding: 0 12px 0 6px;
+      font-family: 'VT323', monospace;
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    .flag-icon {
+      font-size: 14px;
+      margin-left: 4px;
+    }
+
+    /* Centered Browning Poetry Verse at Bottom (Matches Screenshot!) */
+    .poem-banner {
+      position: absolute;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.6;
+      letter-spacing: 1px;
+      font-style: italic;
+      color: #ffffff;
+      text-shadow: 0 2px 6px #000000, 0 0 2px #000000;
+      width: 90%;
+      max-width: 360px;
+      pointer-events: none;
+    }
+
+    /* Virtual Crank in Bottom Right (Playdate style) */
+    .crank-box {
+      position: absolute;
+      bottom: 20px;
+      right: 18px;
+      width: 72px;
+      height: 72px;
+      cursor: grab;
+      opacity: 0.85;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: opacity 0.2s ease;
+    }
+
+    .crank-box:hover {
+      opacity: 1;
+    }
+
+    .crank-base {
+      position: relative;
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: #000000;
+      border: 2px solid #ffffff;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.9);
+    }
+
+    .crank-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 2px solid #000000;
+    }
+
+    .crank-arm {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 24px;
+      height: 4px;
+      background: #ffffff;
+      transform-origin: 0% 50%;
+      transform: rotate(0deg);
+    }
+
+    .crank-handle {
+      position: absolute;
+      right: -6px;
+      top: -5px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 2px solid #000000;
+    }
+
+    .crank-text {
+      font-size: 7px;
+      letter-spacing: 1px;
+      margin-top: 4px;
+      color: #ffffff;
+    }
+
+    /* Scroll Modal Overlay (Exact Recreation of Image 5) */
+    .scroll-modal {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.88);
+      backdrop-filter: blur(4px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      transition: opacity 0.25s ease;
+    }
+
+    .scroll-modal.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .scroll-card {
+      width: 90%;
+      max-width: 330px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .roller-bar {
+      width: 94%;
+      height: 14px;
+      background: repeating-linear-gradient(
+        90deg,
+        #000000,
+        #000000 2px,
+        #ffffff 2px,
+        #ffffff 4px
+      );
+      border: 2px solid #ffffff;
+    }
+
+    .scroll-sheet {
+      width: 90%;
+      background: #ffffff;
+      color: #000000;
+      padding: 22px 18px;
+      border-left: 2px solid #000000;
+      border-right: 2px solid #000000;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+      text-align: center;
+    }
+
+    .scroll-numeral {
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      margin-bottom: 14px;
+    }
+
+    .scroll-text {
+      font-size: 13px;
+      line-height: 1.6;
+      font-style: italic;
+    }
+
+    .scroll-close {
+      margin-top: 16px;
+      background: transparent;
+      color: #ffffff;
+      border: none;
+      font-family: 'Cinzel', serif;
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: 3px;
+      cursor: pointer;
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
-  <div id="container">
-    <canvas id="displayCanvas"></canvas>
+  <div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+
+    <div class="ui-overlay" id="ui-frame">
+      <!-- Top Right Pennant Flag HUD (Matches Screenshot!) -->
+      <div id="flag-hud" class="flag-hud" title="View Full Canto Scroll">
+        <div class="flag-body">
+          <span id="flag-count">33</span>
+          <span class="flag-icon">👣</span>
+        </div>
+        <div class="flag-tail"></div>
+      </div>
+
+      <!-- Centered Browning Poetry Verse at Bottom (Matches Screenshot!) -->
+      <div id="poem-banner" class="poem-banner">
+        My first thought was, he<br>lied in every word,
+      </div>
+
+      <!-- Virtual Crank Controller in Bottom Right -->
+      <div id="crank-box" class="crank-box" title="Drag to Crank">
+        <div class="crank-base">
+          <div id="crank-arm" class="crank-arm">
+            <div class="crank-handle"></div>
+          </div>
+          <div class="crank-center"></div>
+        </div>
+        <span class="crank-text">CRANK / DRAG</span>
+      </div>
+
+      <!-- Ancient Scroll Modal -->
+      <div id="scroll-modal" class="scroll-modal hidden">
+        <div class="scroll-card">
+          <div class="roller-bar"></div>
+          <div class="scroll-sheet">
+            <div class="scroll-numeral">I</div>
+            <div class="scroll-text">
+              My first thought was, he<br>
+              lied in every word,<br><br>
+              that hoary cripple, with<br>
+              malicious eye<br><br>
+              askance to watch the<br>
+              working of his lie<br><br>
+              on mine, and mouth scarce<br>
+              able to afford<br><br>
+              suppression of the glee that<br>
+              pursed and scored<br><br>
+              its edge at one more victim<br>
+              gained thereby.
+            </div>
+          </div>
+          <div class="roller-bar"></div>
+          <button id="scroll-close-btn" class="scroll-close">BACK</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
-    const canvas = document.getElementById('displayCanvas');
+    // =========================================================================
+    // NIGHTCLIMB 1-BIT DITHERED ENGINE (Interactive Moving Recreation)
+    // =========================================================================
+
+    const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
+    const uiFrame = document.getElementById('ui-frame');
+    const flagCount = document.getElementById('flag-count');
+    const poemBanner = document.getElementById('poem-banner');
+    const crankBox = document.getElementById('crank-box');
+    const crankArm = document.getElementById('crank-arm');
+    const scrollModal = document.getElementById('scroll-modal');
+    const flagHud = document.getElementById('flag-hud');
+    const scrollCloseBtn = document.getElementById('scroll-close-btn');
 
-    // Load the exact reference scene image
-    const sceneImg = new Image();
-    sceneImg.src = 'assets/scene.png';
+    // Virtual resolution matching the exact 460x998 reference screenshot aspect ratio
+    const V_W = 230;
+    const V_H = 499;
 
-    function resizeAndRender() {
-      const windowW = window.innerWidth;
-      const windowH = window.innerHeight;
+    // Offscreen 1-bit rendering buffer
+    const offscreen = document.createElement('canvas');
+    offscreen.width = V_W;
+    offscreen.height = V_H;
+    const bCtx = offscreen.getContext('2d', { willReadFrequently: true });
 
-      // Base aspect ratio of the scene image (460 x 998)
-      const baseW = sceneImg.naturalWidth || 460;
-      const baseH = sceneImg.naturalHeight || 998;
-      const aspect = baseW / baseH;
+    // 4x4 Bayer Matrix for authentic stippled dithering
+    const bayer4x4 = [
+      [  0, 128,  32, 160],
+      [192,  64, 224,  96],
+      [ 48, 176,  16, 144],
+      [240, 112, 208,  80]
+    ];
 
-      // Calculate fitted dimensions maintaining strict aspect ratio
-      let targetW, targetH;
-      if (windowW / windowH < aspect) {
-        targetW = windowW;
-        targetH = Math.round(windowW / aspect);
-      } else {
-        targetH = windowH;
-        targetW = Math.round(windowH * aspect);
+    // State
+    const player = {
+      step: 33.0,          // Current step position (matches '33' in screenshot!)
+      targetStep: 33.0,    // Target step for smooth lerping
+      velocity: 0,
+      direction: -1,       // -1 = facing left (climbing up to left, exact match!)
+      walkCycle: 0,
+      lastFootstep: 33.0
+    };
+
+    let time = 0;
+    let crankAngle = 0;
+    let isCranking = false;
+    let lastCrankAngle = 0;
+
+    // Web Audio Synthesizer (Zero asset dependencies)
+    let audioCtx = null;
+    function ensureAudio() {
+      if (!audioCtx) {
+        const AudioClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioClass) audioCtx = new AudioClass();
+      } else if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playStepSound() {
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(140, now);
+      osc.frequency.exponentialRampToValueAtTime(40, now + 0.05);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.055);
+    }
+
+    function playCrankClick() {
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(800, now);
+      osc.frequency.exponentialRampToValueAtTime(100, now + 0.02);
+      gain.gain.setValueAtTime(0.05, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.022);
+    }
+
+    // Poetry Cantos based on Robert Browning
+    const CANTOS = [
+      { step: 0, text: "My first thought was, he<br>lied in every word," },
+      { step: 50, text: "that hoary cripple, with<br>malicious eye" },
+      { step: 100, text: "askance to watch the<br>working of his lie" },
+      { step: 160, text: "on mine, and mouth scarce<br>able to afford" },
+      { step: 240, text: "suppression of the glee that<br>pursed and scored" },
+      { step: 340, text: "its edge at one more victim<br>gained thereby." },
+      { step: 480, text: "And blew: 'Childe Roland<br>to the Dark Tower came.'" }
+    ];
+
+    function updatePoem(step) {
+      for (let i = CANTOS.length - 1; i >= 0; i--) {
+        if (step >= CANTOS[i].step) {
+          poemBanner.innerHTML = CANTOS[i].text;
+          break;
+        }
+      }
+    }
+
+    // Geometry parameters (matches 230x499 virtual buffer)
+    const TOWER_X = 120;
+    const TOWER_R = 52;
+    const STAIR_W = 32;
+    const PIXELS_PER_STEP = 11;
+    const STEPS_PER_TURN = 14;
+
+    function getStepCoords(s, camStep, camY) {
+      const delta = s - camStep;
+      const y = camY - delta * PIXELS_PER_STEP;
+
+      // Spiral curves UP and to the LEFT!
+      const angle = -(s / STEPS_PER_TURN) * Math.PI * 2;
+      const sinA = Math.sin(angle);
+      const cosA = Math.cos(angle);
+
+      const radius = TOWER_R + STAIR_W * 0.5;
+      const x = TOWER_X + sinA * radius;
+
+      return {
+        x: Math.round(x),
+        y: Math.round(y),
+        z: cosA,
+        isFront: cosA >= -0.15
+      };
+    }
+
+    // =========================================================================
+    // RENDER LOOP
+    // =========================================================================
+
+    function render(dt) {
+      time += dt;
+
+      // Smooth movement towards target
+      const diff = player.targetStep - player.step;
+      player.velocity = diff * 12.0;
+      player.step += player.velocity * dt;
+
+      if (Math.abs(player.velocity) > 0.05) {
+        player.walkCycle += Math.abs(player.velocity) * dt * 4.5;
+        if (Math.abs(player.step - player.lastFootstep) >= 0.8) {
+          player.lastFootstep = player.step;
+          playStepSound();
+        }
       }
 
-      // Set canvas pixel buffer to exact image resolution for 1:1 pixel sharpness
-      canvas.width = baseW;
-      canvas.height = baseH;
+      // Update flag counter & poem text
+      const currentStepInt = Math.max(0, Math.round(player.step));
+      flagCount.textContent = currentStepInt.toString();
+      updatePoem(currentStepInt);
 
-      // Set canvas display CSS size
-      canvas.style.width = `${targetW}px`;
-      canvas.style.height = `${targetH}px`;
+      const b = bCtx;
+      const w = V_W;
+      const h = V_H;
+
+      // 1. Clear with deep black
+      b.fillStyle = '#000000';
+      b.fillRect(0, 0, w, h);
+
+      const camStep = player.step;
+      const camY = Math.round(h * 0.55); // Roland's fixed screen Y (55% down screen)
+
+      // 2. Gothic Arch Window with Moon (Top-Left, matches screenshot!)
+      drawArchWindow(b, camStep);
+
+      // 3. Back-half of spiral stairs
+      drawStairs(b, camStep, camY, false);
+
+      // 4. Central Stone Tower Cylinder with Wall Masonry & Wall Torch
+      drawTowerCylinder(b, camStep, camY);
+
+      // 5. Front-half of spiral stairs
+      drawStairs(b, camStep, camY, true);
+
+      // 6. Dynamic Torchlight Halos (Bayer dithered lighting)
+      drawTorchLights(b, camStep, camY);
+
+      // 7. Apply 1-Bit Bayer Dithering Filter
+      applyBayerDither(b, w, h);
+
+      // 8. Draw Roland (Crisp, high-contrast, facing left, holding torch!)
+      drawRoland(b, player, camStep, camY);
+
+      // 9. Present to screen canvas with pixel-perfect aspect ratio scaling
+      presentCanvas();
+    }
+
+    function drawArchWindow(b, camStep) {
+      const winX = 48;
+      // Parallax slow drift with climb
+      const winY = 110 + ((camStep * 1.5) % 300) - 80;
+      if (winY < -60 || winY > V_H + 60) return;
+
+      b.save();
+      // Arched window frame
+      b.fillStyle = '#1c1c1c';
+      b.beginPath();
+      b.arc(winX, winY, 15, Math.PI, 0);
+      b.lineTo(winX + 15, winY + 38);
+      b.lineTo(winX - 15, winY + 38);
+      b.closePath();
+      b.fill();
+
+      // Glowing bright white moon inside
+      b.fillStyle = '#ffffff';
+      b.beginPath();
+      b.arc(winX - 1, winY + 5, 12, 0, Math.PI * 2);
+      b.fill();
+
+      // Soft stippled moonlight glow
+      const halo = b.createRadialGradient(winX, winY + 5, 12, winX, winY + 5, 45);
+      halo.addColorStop(0, 'rgba(255, 255, 255, 0.6)');
+      halo.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      b.fillStyle = halo;
+      b.beginPath();
+      b.arc(winX, winY + 5, 45, 0, Math.PI * 2);
+      b.fill();
+
+      b.restore();
+    }
+
+    function drawTowerCylinder(b, camStep, camY) {
+      b.save();
+      const cx = TOWER_X;
+      const r = TOWER_R;
+      const leftX = cx - r;
+      const rightX = cx + r;
+
+      // Curved cylinder grayscale gradient
+      const grad = b.createLinearGradient(leftX, 0, rightX, 0);
+      grad.addColorStop(0.0, '#101010');
+      grad.addColorStop(0.25, '#353535');
+      grad.addColorStop(0.55, '#5a5a5a');
+      grad.addColorStop(0.85, '#2e2e2e');
+      grad.addColorStop(1.0, '#0a0a0a');
+
+      b.fillStyle = grad;
+      b.fillRect(leftX, 0, r * 2, V_H);
+
+      // Horizontal stone courses with vertical scroll
+      b.strokeStyle = '#050505';
+      b.lineWidth = 1;
+      const blockH = 12;
+      const scrollY = (camStep * PIXELS_PER_STEP) % blockH;
+
+      for (let y = -blockH; y < V_H + blockH; y += blockH) {
+        const lineY = Math.round(y + scrollY);
+        b.beginPath();
+        b.moveTo(leftX, lineY);
+        b.lineTo(rightX, lineY);
+        b.stroke();
+
+        // Staggered vertical masonry notches
+        const row = Math.floor((camStep * PIXELS_PER_STEP + y) / blockH);
+        const shift = (row % 2) * 12;
+        for (let bx = leftX + 8 + shift; bx < rightX - 4; bx += 20) {
+          b.beginPath();
+          b.moveTo(bx, lineY);
+          b.lineTo(bx, lineY + blockH);
+          b.stroke();
+        }
+      }
+
+      // Wall-mounted iron torches at regular vertical intervals
+      const torchEvery = 14;
+      const baseTorch = Math.floor((camStep - 20) / torchEvery) * torchEvery;
+      for (let ts = baseTorch; ts < camStep + 25; ts += torchEvery) {
+        const angle = -(ts / STEPS_PER_TURN) * Math.PI * 2;
+        const cosA = Math.cos(angle);
+        if (cosA > 0.2) {
+          const sy = camY - (ts - camStep) * PIXELS_PER_STEP;
+          const sx = cx + Math.sin(angle) * (r - 2);
+
+          // Iron wall sconce
+          b.fillStyle = '#050505';
+          b.fillRect(sx - 2, sy - 8, 4, 12);
+
+          // Flickering flame
+          b.fillStyle = '#ffffff';
+          b.beginPath();
+          b.moveTo(sx - 2, sy - 8);
+          b.lineTo(sx, sy - 15 - Math.sin(time * 24 + ts) * 3);
+          b.lineTo(sx + 2, sy - 8);
+          b.closePath();
+          b.fill();
+        }
+      }
+
+      b.restore();
+    }
+
+    function drawStairs(b, camStep, camY, renderFront) {
+      b.save();
+      const range = 20;
+      const minS = Math.floor(camStep - range);
+      const maxS = Math.ceil(camStep + range);
+
+      for (let s = minS; s <= maxS; s++) {
+        const delta = s - camStep;
+        const y = camY - delta * PIXELS_PER_STEP;
+
+        const angle = -(s / STEPS_PER_TURN) * Math.PI * 2;
+        const sinA = Math.sin(angle);
+        const cosA = Math.cos(angle);
+
+        const innerX = TOWER_X + sinA * TOWER_R;
+        const outerX = TOWER_X + sinA * (TOWER_R + STAIR_W);
+
+        const isFront = cosA >= -0.15;
+        if (isFront !== renderFront) continue;
+
+        const light = Math.max(0.2, (cosA + 1.0) * 0.45);
+        const shade = Math.floor(light * 220);
+        const stepThick = 5;
+
+        // Stone step
+        b.fillStyle = renderFront ? `rgb(${shade}, ${shade}, ${shade})` : '#151515';
+        b.strokeStyle = '#050505';
+        b.lineWidth = 1;
+
+        b.beginPath();
+        b.moveTo(innerX, y);
+        b.lineTo(outerX, y);
+        b.lineTo(outerX, y + stepThick);
+        b.lineTo(innerX, y + stepThick);
+        b.closePath();
+        b.fill();
+        b.stroke();
+
+        if (renderFront) {
+          // Top tread highlight
+          b.strokeStyle = `rgb(${Math.min(255, shade + 50)}, ${Math.min(255, shade + 50)}, ${Math.min(255, shade + 50)})`;
+          b.beginPath();
+          b.moveTo(innerX, y);
+          b.lineTo(outerX, y);
+          b.stroke();
+        }
+      }
+      b.restore();
+    }
+
+    function drawTorchLights(b, camStep, camY) {
+      b.save();
+
+      // 1. Roland's Torch Light Halo
+      const rolandPos = getStepCoords(camStep, camStep, camY);
+      const tx = rolandPos.x - 8; // Torch is held to the left!
+      const ty = rolandPos.y - 18;
+      const flicker = Math.sin(time * 20) * 2 + Math.cos(time * 33) * 1.5;
+      const radius = 64 + flicker;
+
+      const torchGrad = b.createRadialGradient(tx, ty, 4, tx, ty, radius);
+      torchGrad.addColorStop(0.0, 'rgba(255, 255, 255, 0.95)');
+      torchGrad.addColorStop(0.35, 'rgba(210, 210, 210, 0.65)');
+      torchGrad.addColorStop(0.7, 'rgba(100, 100, 100, 0.25)');
+      torchGrad.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
+
+      b.globalCompositeOperation = 'screen';
+      b.fillStyle = torchGrad;
+      b.beginPath();
+      b.arc(tx, ty, radius, 0, Math.PI * 2);
+      b.fill();
+
+      // 2. Wall Torches Halos
+      const torchEvery = 14;
+      const baseTorch = Math.floor((camStep - 15) / torchEvery) * torchEvery;
+      for (let ts = baseTorch; ts < camStep + 18; ts += torchEvery) {
+        const angle = -(ts / STEPS_PER_TURN) * Math.PI * 2;
+        if (Math.cos(angle) > 0.2) {
+          const sy = camY - (ts - camStep) * PIXELS_PER_STEP;
+          const sx = TOWER_X + Math.sin(angle) * (TOWER_R - 2);
+
+          const wGrad = b.createRadialGradient(sx, sy - 15, 3, sx, sy - 15, 38);
+          wGrad.addColorStop(0.0, 'rgba(255, 255, 255, 0.7)');
+          wGrad.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
+          b.fillStyle = wGrad;
+          b.beginPath();
+          b.arc(sx, sy - 15, 38, 0, Math.PI * 2);
+          b.fill();
+        }
+      }
+
+      b.restore();
+    }
+
+    function applyBayerDither(b, w, h) {
+      const imgData = b.getImageData(0, 0, w, h);
+      const d = imgData.data;
+      const bayer = bayer4x4;
+
+      for (let y = 0; y < h; y++) {
+        const row = y * w * 4;
+        const bRow = bayer[y % 4];
+
+        for (let x = 0; x < w; x++) {
+          const i = row + (x * 4);
+          const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+          const threshold = bRow[x % 4];
+
+          const val = gray >= threshold ? 255 : 0;
+          d[i] = val;
+          d[i + 1] = val;
+          d[i + 2] = val;
+          d[i + 3] = 255;
+        }
+      }
+
+      b.putImageData(imgData, 0, 0);
+    }
+
+    // Roland Sprite facing LEFT (Exact match to screenshot!)
+    function drawRoland(b, player, camStep, camY) {
+      const pos = getStepCoords(camStep, camStep, camY);
+
+      b.save();
+      b.translate(pos.x, pos.y);
+
+      // Facing LEFT (towards the stairs climbing up!)
+      b.scale(-1, 1);
+
+      const isMoving = Math.abs(player.velocity) > 0.05;
+      const walkPhase = Math.sin(player.walkCycle * Math.PI * 2);
+
+      let frontLegY = 0;
+      let backLegY = 0;
+      let bodyBob = 0;
+
+      if (isMoving) {
+        frontLegY = Math.max(0, walkPhase * 5);
+        backLegY = Math.max(0, -walkPhase * 3);
+        bodyBob = Math.abs(walkPhase) * 2;
+      }
+
+      // Step shadow
+      b.fillStyle = '#000000';
+      b.fillRect(-7, 0, 14, 2);
+
+      // 1. Back leg
+      b.fillStyle = '#000000';
+      b.fillRect(-5, -8 + backLegY - bodyBob, 3, 8 - backLegY);
+
+      // 2. Front leg stepping up onto stone
+      b.fillRect(1, -8 - frontLegY - bodyBob, 4, 8 + frontLegY);
+
+      // 3. Dark Cloak / Pack behind body
+      b.fillStyle = '#000000';
+      b.beginPath();
+      b.moveTo(-6, -20 - bodyBob);
+      b.lineTo(-12, -13 - bodyBob);
+      b.lineTo(-6, -7 - bodyBob);
+      b.closePath();
+      b.fill();
+
+      // 4. White Tunic (Bright crisp white, bold black contour)
+      b.fillStyle = '#ffffff';
+      b.strokeStyle = '#000000';
+      b.lineWidth = 1.5;
+      b.beginPath();
+      b.roundRect(-5, -19 - bodyBob, 10, 12, [3, 3, 0, 0]);
+      b.fill();
+      b.stroke();
+
+      // Belt
+      b.fillStyle = '#000000';
+      b.fillRect(-5, -10 - bodyBob, 10, 2);
+
+      // 5. Squire Hood (Black)
+      b.fillStyle = '#000000';
+      b.beginPath();
+      b.arc(0, -23 - bodyBob, 5.5, 0, Math.PI * 2);
+      b.fill();
+
+      // Pointy hood back
+      b.beginPath();
+      b.moveTo(-4, -22 - bodyBob);
+      b.lineTo(-9, -20 - bodyBob);
+      b.lineTo(-4, -18 - bodyBob);
+      b.closePath();
+      b.fill();
+
+      // 6. Face Profile & Eye
+      b.fillStyle = '#ffffff';
+      b.beginPath();
+      b.arc(2, -23 - bodyBob, 3.5, -Math.PI * 0.45, Math.PI * 0.45);
+      b.lineTo(1, -19 - bodyBob);
+      b.closePath();
+      b.fill();
+
+      // Eye dot
+      b.fillStyle = '#000000';
+      b.fillRect(3.5, -24 - bodyBob, 1.5, 1.5);
+
+      // 7. Arm reaching forward holding Wooden Torch
+      b.fillStyle = '#ffffff';
+      b.fillRect(2, -16 - bodyBob, 6, 4);
+      b.strokeStyle = '#000000';
+      b.lineWidth = 1;
+      b.strokeRect(2, -16 - bodyBob, 6, 4);
+
+      // Torch Stick (Black wood)
+      const torchX = 8;
+      const torchY = -15 - bodyBob;
+      b.fillStyle = '#000000';
+      b.fillRect(torchX, torchY - 8, 2.5, 12);
+
+      // 8. Burning Flame (White with black contour & dynamic flickering!)
+      const flameH = 8 + Math.sin(time * 25) * 3 + Math.random() * 2;
+      b.fillStyle = '#ffffff';
+      b.strokeStyle = '#000000';
+      b.lineWidth = 1;
+      b.beginPath();
+      b.moveTo(torchX - 2, torchY - 8);
+      b.lineTo(torchX + 1.25, torchY - 8 - flameH);
+      b.lineTo(torchX + 4.5, torchY - 8);
+      b.closePath();
+      b.fill();
+      b.stroke();
+
+      b.restore();
+    }
+
+    // Scales canvas maintaining strict 1:2.17 portrait aspect ratio (Square Pixels)
+    function presentCanvas() {
+      const scrW = window.innerWidth;
+      const scrH = window.innerHeight;
+
+      const scale = Math.min(scrW / V_W, scrH / V_H);
+      const drawW = Math.round(V_W * scale);
+      const drawH = Math.round(V_H * scale);
+
+      canvas.width = V_W;
+      canvas.height = V_H;
+      canvas.style.width = `${drawW}px`;
+      canvas.style.height = `${drawH}px`;
+
+      // Keep UI overlay frame matching the canvas frame
+      uiFrame.style.width = `${drawW}px`;
+      uiFrame.style.height = `${drawH}px`;
 
       ctx.imageSmoothingEnabled = false;
-
-      // Clear with pure black
-      ctx.fillStyle = '#000000';
-      ctx.fillRect(0, 0, baseW, baseH);
-
-      // Draw the exact scene
-      ctx.drawImage(sceneImg, 0, 0, baseW, baseH);
+      ctx.drawImage(offscreen, 0, 0);
     }
 
-    sceneImg.onload = resizeAndRender;
-    window.addEventListener('resize', resizeAndRender);
+    // =========================================================================
+    // INPUT HANDLING (Scroll Wheel, Swipe, Virtual Crank, Keyboard)
+    // =========================================================================
 
-    // Initial render call in case image is already cached
-    if (sceneImg.complete) {
-      resizeAndRender();
+    // 1. Mouse Wheel / Trackpad (1:1 Crank / Digital Crown feel)
+    window.addEventListener('wheel', (e) => {
+      ensureAudio();
+      // Invert wheel: scrolling UP climbs forward
+      const delta = -e.deltaY * 0.012;
+      addStep(delta);
+    }, { passive: true });
+
+    // 2. Keyboard (W / S / Arrows)
+    const keys = {};
+    window.addEventListener('keydown', (e) => {
+      ensureAudio();
+      keys[e.key.toLowerCase()] = true;
+      if (['arrowup', 'arrowdown', ' '].includes(e.key.toLowerCase())) {
+        e.preventDefault();
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      keys[e.key.toLowerCase()] = false;
+    });
+
+    // 3. Touch Drag (Screen Swipe)
+    let touchStartY = null;
+    window.addEventListener('touchstart', (e) => {
+      ensureAudio();
+      if (e.target.closest('#crank-box') || e.target.closest('button')) return;
+      if (e.touches.length > 0) touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    window.addEventListener('touchmove', (e) => {
+      if (touchStartY === null || e.touches.length === 0) return;
+      const currentY = e.touches[0].clientY;
+      const dy = touchStartY - currentY; // Upward swipe = climb
+      touchStartY = currentY;
+
+      const delta = dy * 0.05;
+      addStep(delta);
+    }, { passive: true });
+
+    window.addEventListener('touchend', () => {
+      touchStartY = null;
+    });
+
+    // 4. Virtual Crank (Bottom Right)
+    function startCrank(clientX, clientY) {
+      ensureAudio();
+      const rect = crankBox.getBoundingClientRect();
+      const cx = rect.left + rect.width * 0.5;
+      const cy = rect.top + rect.height * 0.5;
+      isCranking = true;
+      lastCrankAngle = Math.atan2(clientY - cy, clientX - cx);
     }
+
+    function moveCrank(clientX, clientY) {
+      if (!isCranking) return;
+      const rect = crankBox.getBoundingClientRect();
+      const cx = rect.left + rect.width * 0.5;
+      const cy = rect.top + rect.height * 0.5;
+      const newAngle = Math.atan2(clientY - cy, clientX - cx);
+      let dAngle = newAngle - lastCrankAngle;
+
+      if (dAngle > Math.PI) dAngle -= Math.PI * 2;
+      if (dAngle < -Math.PI) dAngle += Math.PI * 2;
+
+      lastCrankAngle = newAngle;
+      crankAngle += dAngle;
+      crankArm.style.transform = `rotate(${crankAngle}rad)`;
+
+      // Clockwise rotation advances climb
+      const stepDelta = dAngle * 0.8;
+      addStep(stepDelta);
+      playCrankClick();
+    }
+
+    function stopCrank() {
+      isCranking = false;
+    }
+
+    crankBox.addEventListener('mousedown', (e) => startCrank(e.clientX, e.clientY));
+    window.addEventListener('mousemove', (e) => moveCrank(e.clientX, e.clientY));
+    window.addEventListener('mouseup', stopCrank);
+
+    crankBox.addEventListener('touchstart', (e) => {
+      if (e.touches.length > 0) startCrank(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: false });
+    window.addEventListener('touchmove', (e) => {
+      if (isCranking && e.touches.length > 0) moveCrank(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: false });
+    window.addEventListener('touchend', stopCrank);
+
+    function addStep(delta) {
+      player.targetStep = Math.max(0, player.targetStep + delta);
+      // Turn crank visual when scrubbing screen
+      if (!isCranking) {
+        crankAngle += delta * 0.6;
+        crankArm.style.transform = `rotate(${crankAngle}rad)`;
+      }
+    }
+
+    // Ancient Scroll Modal Events
+    flagHud.addEventListener('click', () => {
+      ensureAudio();
+      scrollModal.classList.remove('hidden');
+    });
+
+    scrollCloseBtn.addEventListener('click', () => {
+      scrollModal.classList.add('hidden');
+    });
+
+    // =========================================================================
+    // MAIN LOOP
+    // =========================================================================
+
+    let lastTime = performance.now();
+    function loop(now) {
+      const dt = Math.min((now - lastTime) / 1000, 0.1);
+      lastTime = now;
+
+      // Continuous keyboard keys
+      let keyDelta = 0;
+      if (keys['arrowup'] || keys['w']) keyDelta += 8.0 * dt;
+      if (keys['arrowdown'] || keys['s']) keyDelta -= 8.0 * dt;
+      if (keyDelta !== 0) addStep(keyDelta);
+
+      render(dt);
+      requestAnimationFrame(loop);
+    }
+
+    window.addEventListener('resize', presentCanvas);
+    requestAnimationFrame(loop);
   </script>
 </body>
 </html>
