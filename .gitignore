@@ -6,13 +6,14 @@ node_modules/
 .DS_Store
 Thumbs.db
 
-# Mobile Builds
-/ios/
-/android/
+# Build artifacts
 /www/
+*.log
 
-# Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
+# Native build intermediates (ios & android keep their own source code)
+ios/App/Pods/
+ios/App/App/public/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties

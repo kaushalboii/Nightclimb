@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Nightclimb</string>
+    <string name="title_activity_main">Nightclimb</string>
+    <string name="package_name">com.nightclimb.game</string>
+    <string name="custom_url_scheme">com.nightclimb.game</string>
+</resources>
