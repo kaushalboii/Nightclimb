@@ -10,6 +10,10 @@ Thumbs.db
 /www/
 *.log
 
+# Media / Raw recordings
+*.mov
+*.mp4
+
 # Native build intermediates (ios & android keep their own source code)
 ios/App/Pods/
 ios/App/App/public/

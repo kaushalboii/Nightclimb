@@ -1,169 +1,816 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#030303">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+  <meta name="theme-color" content="#030303"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <link rel="manifest" href="manifest.json"/>
   <title>A Fool's Errand - The Dark Tower</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=VT323&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
+
+  <!-- Load Tailwind CSS v3 with forms and container queries -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+
+  <!-- Google Fonts for authentic gothic/old-world & pixel atmosphere -->
+  <link href="https://fonts.googleapis.com" rel="preconnect"/>
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=VT323&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/style.css"/>
+
+  <script data-purpose="tailwind-config">
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            gothic: ['"Cinzel"', 'serif'],
+            pixel: ['"VT323"', 'monospace'],
+          },
+          colors: {
+            dither: {
+              black: '#030303',
+              dark: '#0a0a0a',
+              mid: '#888888',
+              light: '#f5f5f5',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Retro CRT & Dither Styles -->
+  <style data-purpose="crt-effects">
+    /* Scanlines and vignette screen filter */
+    .scanlines {
+      background: linear-gradient(
+        to bottom,
+        rgba(255,255,255,0),
+        rgba(255,255,255,0) 50%,
+        rgba(0, 0, 0, 0.42) 51%,
+        rgba(0, 0, 0, 0.42)
+      );
+      background-size: 100% 4px;
+    }
+    .crt-glow {
+      box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.95), 0 0 45px rgba(255, 255, 255, 0.05);
+    }
+    .pixelated-render {
+      image-rendering: -moz-crisp-edges;
+      image-rendering: -webkit-crisp-edges;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    @keyframes subtle-flicker {
+      0% { opacity: 0.985; }
+      50% { opacity: 1; }
+      100% { opacity: 0.975; }
+    }
+    .crt-flicker {
+      animation: subtle-flicker 0.12s infinite alternate;
+    }
+    /* Disable default touch actions to allow fluid custom game swipes */
+    .touch-none-action {
+      touch-action: none;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+  </style>
 </head>
-<body class="bg-black text-white h-screen w-screen overflow-hidden flex items-center justify-center select-none font-gothic antialiased">
-  <main class="relative w-full h-full max-h-screen flex items-center justify-center p-0 md:p-3 sm:p-2" id="app-viewport">
-    <!-- Game Cabinet Viewport -->
-    <div class="relative w-full h-full max-w-[620px] aspect-[9/16] max-h-[96vh] bg-[#020202] border-0 md:border-2 border-[#2b2b2b] shadow-2xl overflow-hidden flex flex-col justify-between crt-flicker" id="game-cabinet">
+<body class="bg-[#050505] text-[#f5f5f5] h-screen w-screen overflow-hidden flex items-center justify-center select-none font-gothic antialiased">
 
-      <!-- CRT Scanlines and Overlay Effects -->
-      <div class="pointer-events-none absolute inset-0 z-40 scanlines opacity-60" id="scanline-overlay"></div>
-      <div class="pointer-events-none absolute inset-0 z-40 crt-glow"></div>
+<!-- BEGIN: Game Container Wrapper -->
+<main class="relative w-full h-full max-h-screen flex items-center justify-center p-0 md:p-3 sm:p-2" id="app-viewport">
+  <!-- Game Cabinet Viewport (Aspect-ratio bounded on desktop, full height/width on mobile) -->
+  <div class="relative w-full h-full max-w-[620px] aspect-[9/16] max-h-[96vh] bg-[#020202] border-0 md:border-2 border-[#2b2b2b] shadow-2xl overflow-hidden flex flex-col justify-between crt-flicker" id="game-cabinet">
 
-      <!-- Top HUD Bar -->
-      <header class="relative z-30 w-full px-4 pt-3 pb-2 flex items-center justify-between text-xs tracking-wider border-b border-[#222] bg-[#020202]/85 backdrop-blur-sm" data-purpose="hud-top">
-        <!-- Story Chapter / Altitude Indicator -->
-        <div class="flex flex-col text-left">
-          <span class="text-[10px] uppercase font-pixel tracking-widest text-[#888]" id="act-indicator">ACT I · THE DESOLATE GATE</span>
-          <div class="flex items-center space-x-2 mt-0.5">
-            <span class="text-sm font-bold tracking-widest text-[#f5f5f5]" id="altitude-display">1843 <span class="text-[12px]">♠</span></span>
-            <span class="text-[10px] px-1.5 py-0.2 bg-[#181818] border border-[#333] text-[#bbb]" id="lane-indicator">MID</span>
-          </div>
+    <!-- BEGIN: CRT Scanlines and Overlay Effects -->
+    <div class="pointer-events-none absolute inset-0 z-40 scanlines opacity-60" id="scanline-overlay"></div>
+    <div class="pointer-events-none absolute inset-0 z-40 crt-glow"></div>
+    <!-- END: CRT Scanlines and Overlay Effects -->
+
+    <!-- BEGIN: Top HUD Bar -->
+    <header class="relative z-30 w-full px-4 pt-3 pb-2 flex items-center justify-between text-xs tracking-wider border-b border-[#222] bg-[#020202]/85 backdrop-blur-sm" data-purpose="hud-top">
+      <!-- Story Chapter / Altitude Indicator -->
+      <div class="flex flex-col text-left">
+        <span class="text-[10px] uppercase font-pixel tracking-widest text-[#888]" id="act-indicator">ACT I · THE DESOLATE GATE</span>
+        <div class="flex items-center space-x-2 mt-0.5">
+          <span class="text-sm font-bold tracking-widest text-[#f5f5f5]" id="altitude-display">1843 <span class="text-[12px]">♠</span></span>
+          <span class="text-[10px] px-1.5 py-0.2 bg-[#181818] border border-[#333] text-[#bbb]" id="lane-indicator">MID</span>
         </div>
-        <!-- System Controls & Stats -->
-        <div class="flex items-center space-x-2 text-right">
-          <!-- Torch Count Indicator -->
-          <div class="flex items-center space-x-1 mr-1 text-[#bbb]" title="Torches / Lives remaining">
-            <span class="text-xs">🔥</span>
-            <span class="font-pixel text-sm" id="torches-count">3/3</span>
-          </div>
-          <!-- Audio Toggle Button -->
-          <button class="px-2 py-1 border border-[#3a3a3a] hover:border-[#888] bg-[#0f0f0f] text-[10px] tracking-widest uppercase transition-colors" data-purpose="sound-toggle" id="sfx-toggle-btn">
-            SFX: <span class="text-white" id="sfx-status">ON</span>
-          </button>
-          <!-- Scanline Toggle -->
-          <button class="px-1.5 py-1 border border-[#3a3a3a] hover:border-[#888] bg-[#0f0f0f] text-[10px] tracking-widest uppercase" id="crt-toggle-btn" title="Toggle CRT Filter">
-            CRT
-          </button>
+      </div>
+      <!-- System Controls & Stats -->
+      <div class="flex items-center space-x-2 text-right">
+        <!-- Torch Count Indicator -->
+        <div class="flex items-center space-x-1 mr-1 text-[#bbb]" title="Torches / Lives remaining">
+          <span class="text-xs">🔥</span>
+          <span class="font-pixel text-sm" id="torches-count">3/3</span>
         </div>
-      </header>
+        <!-- Audio Toggle Button -->
+        <button class="px-2 py-1 border border-[#3a3a3a] hover:border-[#888] bg-[#0f0f0f] text-[10px] tracking-widest uppercase transition-colors" data-purpose="sound-toggle" id="sfx-toggle-btn">
+          SFX: <span class="text-white" id="sfx-status">ON</span>
+        </button>
+        <!-- Scanline Toggle -->
+        <button class="px-1.5 py-1 border border-[#3a3a3a] hover:border-[#888] bg-[#0f0f0f] text-[10px] tracking-widest uppercase" id="crt-toggle-btn" title="Toggle CRT Filter">
+          CRT
+        </button>
+      </div>
+    </header>
+    <!-- END: Top HUD Bar -->
 
-      <!-- Main Stage Viewport -->
-      <div class="relative flex-1 w-full h-full overflow-hidden flex items-center justify-center touch-none-action bg-black" data-purpose="interactive-stage" id="game-stage">
-        <!-- Active Frame Images Container -->
-        <div class="absolute inset-0 flex items-center justify-center overflow-hidden transition-transform duration-300 ease-out" id="visual-frame-container">
-          <img alt="A Fool's Errand Stairwell" class="pixelated-render object-cover w-full h-full scale-[1.02] transition-opacity duration-200 select-none pointer-events-none" id="stage-image" src="">
-          <!-- Frame transition overlay -->
-          <div class="absolute inset-0 bg-black pointer-events-none opacity-0 transition-opacity duration-200" id="frame-transition"></div>
-        </div>
+    <!-- BEGIN: Main Stage Viewport -->
+    <div class="relative flex-1 w-full h-full overflow-hidden flex items-center justify-center touch-none-action bg-black" data-purpose="interactive-stage" id="game-stage">
+      <!-- Active Frame Images Container (Pixel Art Slides) -->
+      <div class="absolute inset-0 flex items-center justify-center overflow-hidden transition-transform duration-150 ease-out" id="visual-frame-container">
+        <img alt="A Fool's Errand Stairwell" class="pixelated-render object-cover w-full h-full scale-[1.03] transition-opacity duration-150 select-none pointer-events-none" id="stage-image" src="assets/step_0.jpg"/>
+      </div>
 
-        <!-- Barrel Hazard Layer -->
-        <div class="pointer-events-none absolute inset-0 z-20 overflow-hidden hidden" data-purpose="barrel-hazard" id="hazard-layer">
-          <div class="absolute left-1/2 -translate-x-1/2 -top-16 w-16 h-16 rounded-full border-2 border-dashed border-white bg-black/90 flex items-center justify-center shadow-[0_0_20px_#fff]" id="barrel-sprite">
-            <div class="w-12 h-12 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-pixel text-white font-bold">
-              ⬤ ROLL
-            </div>
+      <!-- Stage HUD Overlays: Knight Crest (Top Left) & Authentic Flag Banner (Top Right) -->
+      <div class="pointer-events-none absolute top-3 left-3.5 z-30 text-white text-base font-pixel drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] opacity-90 select-none" id="stage-shield" title="Shield Crest">
+        🛡️
+      </div>
+      <div class="pointer-events-none absolute top-3 right-3.5 z-30 flex items-center bg-white text-black font-pixel text-sm px-2.5 py-0.5 shadow-md border-l-4 border-black select-none" id="stage-flag-banner" style="clip-path: polygon(100% 0, 100% 100%, 0 100%, 8px 50%, 0 0);">
+        <span id="flag-steps" class="font-bold mr-1">1843</span>
+        <span>👣</span>
+      </div>
+
+      <!-- Barrel Hazard Layer -->
+      <div class="pointer-events-none absolute inset-0 z-20 overflow-hidden hidden" data-purpose="barrel-hazard" id="hazard-layer">
+        <!-- Rolling Barrel Graphic -->
+        <div class="absolute left-1/2 -translate-x-1/2 -top-16 w-16 h-16 rounded-full border-2 border-dashed border-white bg-black/90 flex items-center justify-center shadow-[0_0_20px_#fff]" id="barrel-sprite">
+          <div class="w-12 h-12 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-pixel text-white font-bold">
+            ⬤ ROLL
           </div>
-        </div>
-
-        <!-- Barrel Imminent Warning Alert Banner -->
-        <div class="pointer-events-none absolute top-12 z-30 left-1/2 -translate-x-1/2 px-3 py-1 bg-white text-black text-[11px] font-bold tracking-widest uppercase hidden font-pixel animate-pulse shadow-lg" id="hazard-alert">
-          ⚠ BARREL ROLLING DOWN! DODGE [A/D]!
-        </div>
-
-        <!-- Start / Title Overlay Screen -->
-        <div class="absolute inset-0 z-30 bg-black/90 backdrop-blur-[2px] flex flex-col items-center justify-between p-8 text-center" data-purpose="title-screen" id="title-overlay">
-          <div class="mt-6 flex flex-col items-center">
-            <h1 class="text-3xl md:text-4xl font-black tracking-widest uppercase mb-1 leading-tight">A Fool's<br/>Errand</h1>
-            <p class="text-xs text-[#888] tracking-widest font-mono uppercase mt-1">The Dark Tower Ascent</p>
-            <div class="w-12 h-0.5 bg-[#444] my-3"></div>
-            <p class="text-xs max-w-xs text-[#aaa] italic leading-relaxed">
-              "My first thought was, he lied in every word... yet to the Dark Tower came."
-            </p>
-          </div>
-          <!-- Ascent Starter Button -->
-          <div class="flex flex-col items-center space-y-3 w-full max-w-xs mb-4">
-            <button class="w-full py-3.5 px-6 bg-[#f5f5f5] text-black font-bold uppercase tracking-widest text-sm hover:bg-white hover:shadow-[0_0_15px_rgba(255,255,255,0.8)] active:scale-95 transition-all" id="start-game-btn">
-              Ascend The Spire
-            </button>
-            <span class="text-[10px] text-[#777] uppercase tracking-wider font-mono">
-              [Swipe Up · Wheel · Space · W · Drag Crank]
-            </span>
-          </div>
-          <div class="flex justify-between w-full max-w-xs text-[11px] text-[#888] font-pixel uppercase tracking-widest border-t border-[#222] pt-3">
-            <span>Poem: R. Browning</span>
-            <span>Est. 1843</span>
-          </div>
-        </div>
-
-        <!-- Game Over / Perished Overlay -->
-        <div class="absolute inset-0 z-30 bg-black/95 flex flex-col items-center justify-center p-6 text-center hidden" data-purpose="perished-screen" id="game-over-overlay">
-          <div class="w-16 h-16 rounded-full border border-dashed border-red-500 flex items-center justify-center mb-4 text-2xl animate-bounce">
-            ☠
-          </div>
-          <h2 class="text-2xl font-bold uppercase tracking-widest text-white mb-2 font-gothic">The Fool Has Perished</h2>
-          <p class="text-xs text-[#999] max-w-xs mb-6 font-mono" id="game-over-reason">Crushed under the trap of rolled oak.</p>
-          <div class="flex flex-col w-full max-w-xs space-y-2">
-            <button class="py-3 px-4 bg-white text-black font-bold uppercase tracking-wider text-xs hover:bg-[#ddd]" id="retry-btn">
-              Resume From Checkpoint
-            </button>
-            <button class="py-2.5 px-4 border border-[#444] text-[#aaa] uppercase tracking-wider text-[11px] hover:text-white hover:border-white" id="restart-all-btn">
-              Restart At Bottom (Step 0)
-            </button>
-          </div>
-        </div>
-
-        <!-- Story Poem Banner (Subtitles) -->
-        <aside class="absolute bottom-14 left-4 right-4 z-20 text-center pointer-events-none transition-all duration-300" id="story-caption">
-          <p class="text-xs md:text-sm italic tracking-wide text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] max-w-md mx-auto bg-black/60 backdrop-blur-xs py-1 px-3 border-y border-[#333]/50" id="poem-text">
-            Swipe or scroll to begin your pilgrimage.
-          </p>
-        </aside>
-
-        <!-- Dodge feedback pill -->
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none opacity-0 text-white font-pixel text-xl tracking-widest uppercase transition-opacity duration-300" id="dodge-tag">
-          EVADED!
-        </div>
-
-        <!-- Virtual Crank (Playdate style) - Bottom Right -->
-        <div class="absolute bottom-6 right-4 z-30" id="crank-container" title="Drag circularly to climb">
-          <div class="crank-base relative w-16 h-16">
-            <div id="crank-arm" class="crank-arm absolute top-1/2 left-1/2 w-8 h-1 bg-white transform-origin-left-center translate-y-[-50%] transition-transform duration-50 ease-out">
-              <div class="crank-handle absolute right-[-4px] top-[-5px] w-10 h-10 rounded-full border-2 border-black bg-white"></div>
-            </div>
-            <div class="crank-center absolute top-1/2 left-1/2 w-3 h-3 rounded-full bg-white border-2 border-black -translate-x-1/2 -translate-y-1/2"></div>
-            <div class="crank-base-ring absolute inset-0 rounded-full border-2 border-white"></div>
-          </div>
-          <span class="crank-text absolute bottom-[-14px] left-1/2 -translate-x-1/2 text-[8px] font-pixel tracking-wider text-white whitespace-nowrap">CRANK</span>
         </div>
       </div>
 
-      <!-- Bottom Controls & Mobile Touch Bar -->
-      <footer class="relative z-30 w-full p-2 bg-[#020202] border-t border-[#1e1e1e] flex flex-col items-center justify-center space-y-2" data-purpose="game-footer-controls">
-        <!-- On-Screen Virtual Controls for Mobile / Rapid Touch -->
-        <div class="w-full flex items-center justify-between px-2 gap-2" data-purpose="virtual-buttons">
-          <button class="flex-1 py-3 bg-[#111] hover:bg-[#222] active:bg-[#333] border border-[#2e2e2e] text-xs font-mono font-bold tracking-widest text-center uppercase active:scale-95 transition-transform" id="btn-dodge-left" title="Dodge Left [A]">
-            ← Left [A]
-          </button>
-          <button class="flex-[1.5] py-3 bg-[#f0f0f0] text-black hover:bg-white active:bg-[#ccc] border border-white text-xs font-bold tracking-widest text-center uppercase shadow-sm active:scale-95 transition-transform" id="btn-ascend-step" title="Step Up [W/Space]">
-            ▲ Ascend [W]
-          </button>
-          <button class="flex-1 py-3 bg-[#111] hover:bg-[#222] active:bg-[#333] border border-[#2e2e2e] text-xs font-mono font-bold tracking-widest text-center uppercase active:scale-95 transition-transform" id="btn-dodge-right" title="Dodge Right [D]">
-            Right [D] →
-          </button>
-        </div>
-        <!-- Quick Status & Instructions Footer -->
-        <div class="flex items-center justify-between w-full px-2 text-[10px] text-[#666] font-pixel tracking-wider">
-          <span id="speed-meter">CADENCE: 0 STEPS/SEC</span>
-          <span>↑ CLIMB · ←→ EVADE HAZARDS</span>
-          <span id="rank-title">RANK: VAGRANT</span>
-        </div>
-      </footer>
-    </div>
-  </main>
+      <!-- Barrel Imminent Warning Alert Banner -->
+      <div class="pointer-events-none absolute top-12 z-30 left-1/2 -translate-x-1/2 px-3 py-1 bg-white text-black text-[11px] font-bold tracking-widest uppercase hidden font-pixel animate-pulse shadow-lg" id="hazard-alert">
+        ⚠ BARREL ROLLING DOWN! DODGE [A/D]!
+      </div>
 
-  <!-- Module Scripts -->
-  <script type="module" src="js/main.js"></script>
+      <!-- Start / Title Overlay Screen -->
+      <div class="absolute inset-0 z-30 bg-black/85 backdrop-blur-[2px] flex flex-col items-center justify-between p-8 text-center" data-purpose="title-screen" id="title-overlay">
+        <div class="mt-6 flex flex-col items-center">
+          <h1 class="text-3xl md:text-4xl font-black tracking-widest uppercase mb-1">A Fool's<br/>Errand</h1>
+          <p class="text-xs text-[#888] tracking-widest font-mono uppercase mt-1">The Dark Tower Ascent</p>
+          <div class="w-12 h-0.5 bg-[#444] my-3"></div>
+          <p class="text-xs max-w-xs text-[#aaa] italic leading-relaxed">
+            "My first thought was, he lied in every word... yet to the Dark Tower came."
+          </p>
+        </div>
+        <!-- Ascent Starter Button -->
+        <div class="flex flex-col items-center space-y-3 w-full max-w-xs mb-4">
+          <button class="w-full py-3.5 px-6 bg-[#f5f5f5] text-black font-bold uppercase tracking-widest text-sm hover:bg-white hover:shadow-[0_0_15px_rgba(255,255,255,0.8)] active:scale-95 transition-all cursor-pointer" id="start-game-btn">
+            Ascend The Spire
+          </button>
+          <span class="text-[10px] text-[#777] uppercase tracking-wider font-mono">
+            [Swipe Up · Wheel · Space · W]
+          </span>
+        </div>
+        <div class="flex justify-between w-full max-w-xs text-[11px] text-[#888] font-pixel uppercase tracking-widest border-t border-[#222] pt-3">
+          <span>Poem: R. Browning</span>
+          <span>Est. 1843</span>
+        </div>
+      </div>
+
+      <!-- Game Over / Perished Overlay -->
+      <div class="absolute inset-0 z-30 bg-black/95 flex flex-col items-center justify-center p-6 text-center hidden" data-purpose="perished-screen" id="game-over-overlay">
+        <div class="w-16 h-16 rounded-full border border-dashed border-red-500 flex items-center justify-center mb-4 text-2xl animate-bounce">
+          ☠
+        </div>
+        <h2 class="text-2xl font-bold uppercase tracking-widest text-white mb-2 font-gothic">The Fool Has Perished</h2>
+        <p class="text-xs text-[#999] max-w-xs mb-6 font-mono" id="game-over-reason">Crushed under the trap of rolled oak.</p>
+        <div class="flex flex-col w-full max-w-xs space-y-2">
+          <button class="py-3 px-4 bg-white text-black font-bold uppercase tracking-wider text-xs hover:bg-[#ddd] cursor-pointer" id="retry-btn">
+            Resume From Checkpoint
+          </button>
+          <button class="py-2.5 px-4 border border-[#444] text-[#aaa] uppercase tracking-wider text-[11px] hover:text-white hover:border-white cursor-pointer" id="restart-all-btn">
+            Restart At Bottom (Step 0)
+          </button>
+        </div>
+      </div>
+
+      <!-- Story Poem Banner (Subtitles) -->
+      <aside class="absolute bottom-14 left-4 right-4 z-20 text-center pointer-events-none transition-all duration-300" id="story-caption">
+        <p class="text-xs md:text-sm italic tracking-wide text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] max-w-md mx-auto bg-black/60 backdrop-blur-xs py-1 px-3 border-y border-[#333]/50" id="poem-text">
+          Swipe or scroll to begin your pilgrimage.
+        </p>
+      </aside>
+
+      <!-- Dodge feedback pill -->
+      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none opacity-0 text-white font-pixel text-xl tracking-widest uppercase transition-opacity" id="dodge-tag">
+        EVADED!
+      </div>
+    </div>
+    <!-- END: Main Stage Viewport -->
+
+    <!-- BEGIN: Bottom Controls & Mobile Touch Bar -->
+    <footer class="relative z-30 w-full p-2 bg-[#020202] border-t border-[#1e1e1e] flex flex-col items-center justify-center space-y-2" data-purpose="game-footer-controls">
+      <!-- On-Screen Virtual Controls for Mobile / Rapid Touch -->
+      <div class="w-full flex items-center justify-between px-2 gap-2" data-purpose="virtual-buttons">
+        <!-- Step Left Dodge -->
+        <button class="flex-1 py-3 bg-[#111] hover:bg-[#222] active:bg-[#333] border border-[#2e2e2e] text-xs font-mono font-bold tracking-widest text-center uppercase active:scale-95 transition-transform cursor-pointer" id="btn-dodge-left" title="Dodge Left">
+          ← Left [A]
+        </button>
+        <!-- Ascent Action (Main Climb Button) -->
+        <button class="flex-[1.5] py-3 bg-[#f0f0f0] text-black hover:bg-white active:bg-[#ccc] border border-white text-xs font-bold tracking-widest text-center uppercase shadow-sm active:scale-95 transition-transform cursor-pointer" id="btn-ascend-step" title="Step Up">
+          ▲ Ascend [W]
+        </button>
+        <!-- Step Right Dodge -->
+        <button class="flex-1 py-3 bg-[#111] hover:bg-[#222] active:bg-[#333] border border-[#2e2e2e] text-xs font-mono font-bold tracking-widest text-center uppercase active:scale-95 transition-transform cursor-pointer" id="btn-dodge-right" title="Dodge Right">
+          Right [D] →
+        </button>
+      </div>
+      <!-- Quick Status & Instructions Footer -->
+      <div class="flex items-center justify-between w-full px-2 text-[10px] text-[#666] font-pixel tracking-wider">
+        <span id="speed-meter">CADENCE: 0 STEPS/SEC</span>
+        <span>↑ CLIMB · ←→ EVADE HAZARDS · ↓ RETREAT</span>
+        <span id="rank-title">RANK: PILGRIM</span>
+      </div>
+    </footer>
+    <!-- END: Bottom Controls & Mobile Touch Bar -->
+
+  </div>
+</main>
+<!-- END: Game Container Wrapper -->
+
+<!-- BEGIN: Audio Engine (Web Audio API procedural sound generation) -->
+<script data-purpose="audio-engine">
+  // Procedural 1-bit sound generator: zero external audio dependencies
+  class SoundEngine {
+    constructor() {
+      this.ctx = null;
+      this.enabled = true;
+    }
+    init() {
+      if (!this.ctx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) {
+          this.ctx = new AudioContext();
+        }
+      }
+      if (this.ctx && this.ctx.state === 'suspended') {
+        this.ctx.resume();
+      }
+    }
+    playStep() {
+      if (!this.enabled) return;
+      this.init();
+      if (!this.ctx) return;
+      const now = this.ctx.currentTime;
+      // Low stone thud
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(110 + Math.random() * 20, now);
+      osc.frequency.exponentialRampToValueAtTime(30, now + 0.08);
+      gain.gain.setValueAtTime(0.3, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.08);
+
+      // Gravel click
+      try {
+        const noiseBuffer = this.ctx.createBuffer(1, Math.floor(this.ctx.sampleRate * 0.02), this.ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < noiseBuffer.length; i++) {
+          output[i] = Math.random() * 2 - 1;
+        }
+        const whiteNoise = this.ctx.createBufferSource();
+        whiteNoise.buffer = noiseBuffer;
+        const noiseGain = this.ctx.createGain();
+        noiseGain.gain.setValueAtTime(0.08, now);
+        noiseGain.gain.linearRampToValueAtTime(0.001, now + 0.02);
+        whiteNoise.connect(noiseGain);
+        noiseGain.connect(this.ctx.destination);
+        whiteNoise.start(now);
+      } catch (e) {}
+
+      // Trigger mobile haptic if available
+      if (navigator.vibrate) {
+        navigator.vibrate(8);
+      }
+    }
+    playEvade() {
+      if (!this.enabled) return;
+      this.init();
+      if (!this.ctx) return;
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(350, now);
+      osc.frequency.exponentialRampToValueAtTime(600, now + 0.09);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.09);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.09);
+      if (navigator.vibrate) navigator.vibrate(12);
+    }
+    playWarning() {
+      if (!this.enabled) return;
+      this.init();
+      if (!this.ctx) return;
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(140, now);
+      osc.frequency.linearRampToValueAtTime(90, now + 0.2);
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.2);
+      if (navigator.vibrate) navigator.vibrate([20, 30, 20]);
+    }
+    playImpact() {
+      if (!this.enabled) return;
+      this.init();
+      if (!this.ctx) return;
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(90, now);
+      osc.frequency.exponentialRampToValueAtTime(20, now + 0.35);
+      gain.gain.setValueAtTime(0.5, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.35);
+      if (navigator.vibrate) navigator.vibrate([50, 60, 100]);
+    }
+  }
+  const sound = new SoundEngine();
+</script>
+<!-- END: Audio Engine -->
+
+<!-- BEGIN: Core Game Loop & Interaction Script -->
+<script data-purpose="gameplay-controller">
+  // Authentic 1-bit frames matching user reference images
+  const FALLBACK_FRAME = 'assets/step_0.jpg';
+  const RAW_FRAMES = [
+    'assets/step_0.jpg',
+    'assets/step_1.jpg',
+    'assets/step_2.jpg',
+    'assets/step_3.jpg',
+    'assets/step_4.jpg'
+  ];
+  const BARREL_FRAME = 'assets/step_barrel.jpg';
+
+  // Preloaded image objects for instantaneous frame cycling
+  const PRELOADED_IMAGES = [];
+  RAW_FRAMES.forEach((src) => {
+    const img = new Image();
+    img.src = src;
+    img.onerror = () => { img.src = 'assets/scene.png'; };
+    PRELOADED_IMAGES.push(img);
+  });
+  const barrelImg = new Image();
+  barrelImg.src = BARREL_FRAME;
+  barrelImg.onerror = () => { barrelImg.src = 'assets/scene.png'; };
+  PRELOADED_IMAGES.push(barrelImg);
+
+  // Browning's "Childe Roland to the Dark Tower Came" narrative milestones
+  const STORY_BEATS = [
+    { step: 0, act: "ACT I · THE DESOLATE GATE", poem: "My first thought was, he lied in every word..." },
+    { step: 100, act: "ACT I · THE DESOLATE GATE", poem: "That hoary cripple, with malicious eye askance to watch the working of his lie..." },
+    { step: 250, act: "ACT I · THE DESOLATE GATE", poem: "For mark! no sooner was I fairly found pledged to the plain, after a pace or two..." },
+    { step: 500, act: "ACT II · THE WINDING STAIRS", poem: "Gray plain all round: nothing but plain to the horizon's bound. I might go on; nought else remained to do." },
+    { step: 900, act: "ACT II · THE WINDING STAIRS", poem: "So, on I went. I think I never saw such starved ignoble nature; nothing throve." },
+    { step: 1300, act: "ACT III · THE TRAP OF ROLLED OAK", poem: "A sudden little river crossed my path... As for the grass, it grew as scant as hair in leprosy." },
+    { step: 1800, act: "ACT III · THE TRAP OF ROLLED OAK", poem: "What bad use was that engine for? To wheel men's bodies into the dark void!" },
+    { step: 2200, act: "ACT IV · THE BLIND SPIRE", poem: "The round squat turret, blind as the fool's heart, built of brown stone, without a counterpart!" },
+    { step: 2700, act: "ACT IV · THE DARK TOWER REACHED", poem: "And yet dauntless the slug-horn to my lips I set, and blew: 'Childe Roland to the Dark Tower came.'" }
+  ];
+
+  // State Variables
+  const savedStep = parseInt(localStorage.getItem('fools_errand_step') || '1843', 10);
+  let currentStep = savedStep;
+  let checkpointStep = savedStep;
+  let currentFrameIndex = 0;
+  let currentLane = 0; // -1: Left, 0: Mid, 1: Right
+  let torches = 3;
+  let isGameOver = false;
+  let isGameStarted = false;
+  let lastStepTime = performance.now();
+  let stepCountInterval = 0;
+  let barrelActive = false;
+  let barrelProgress = 0;
+  let barrelLane = 0;
+  let barrelSpeed = 0.024;
+  let barrelAnimId = null;
+
+  // DOM References
+  const stageImage = document.getElementById('stage-image');
+  const visualContainer = document.getElementById('visual-frame-container');
+  const altitudeDisplay = document.getElementById('altitude-display');
+  const flagSteps = document.getElementById('flag-steps');
+  const laneIndicator = document.getElementById('lane-indicator');
+  const actIndicator = document.getElementById('act-indicator');
+  const poemText = document.getElementById('poem-text');
+  const torchesCount = document.getElementById('torches-count');
+  const speedMeter = document.getElementById('speed-meter');
+  const rankTitle = document.getElementById('rank-title');
+  const titleOverlay = document.getElementById('title-overlay');
+  const gameOverOverlay = document.getElementById('game-over-overlay');
+  const hazardLayer = document.getElementById('hazard-layer');
+  const barrelSprite = document.getElementById('barrel-sprite');
+  const hazardAlert = document.getElementById('hazard-alert');
+  const dodgeTag = document.getElementById('dodge-tag');
+  const sfxToggleBtn = document.getElementById('sfx-toggle-btn');
+  const sfxStatus = document.getElementById('sfx-status');
+  const crtToggleBtn = document.getElementById('crt-toggle-btn');
+  const scanlineOverlay = document.getElementById('scanline-overlay');
+
+  // Set initial frame
+  stageImage.src = RAW_FRAMES[0];
+  stageImage.onerror = () => { stageImage.src = 'assets/scene.png'; };
+
+  // UI Updates
+  function updateHUD() {
+    altitudeDisplay.innerHTML = `${currentStep} <span class="text-[12px]">&#9824;</span>`;
+    if (flagSteps) {
+      flagSteps.innerText = currentStep.toString();
+    }
+    
+    // Update Lane
+    const laneNames = { '-1': 'LEFT', '0': 'MID', '1': 'RIGHT' };
+    laneIndicator.innerText = laneNames[currentLane] || 'MID';
+
+    // Update story narrative based on altitude
+    let activeBeat = STORY_BEATS[0];
+    for (const beat of STORY_BEATS) {
+      if (currentStep >= beat.step) {
+        activeBeat = beat;
+      }
+    }
+    actIndicator.innerHTML = activeBeat.act;
+    poemText.innerHTML = `&ldquo;${activeBeat.poem}&rdquo;`;
+
+    // Update Torches
+    torchesCount.innerText = `${torches}/3`;
+
+    // Rank Title progression
+    if (currentStep < 500) rankTitle.innerText = "RANK: VAGRANT";
+    else if (currentStep < 1200) rankTitle.innerText = "RANK: PILGRIM";
+    else if (currentStep < 2000) rankTitle.innerText = "RANK: SQUIRE";
+    else rankTitle.innerText = "RANK: CHILDE ROLAND";
+
+    // Save step progress to localStorage
+    try {
+      localStorage.setItem('fools_errand_step', currentStep.toString());
+    } catch (_) {}
+  }
+
+  // Step Climbing Action (Forward or Retreat)
+  function ascend(count = 1) {
+    if (isGameOver || !isGameStarted) return;
+
+    // Prevent negative steps below 0
+    if (count < 0 && currentStep <= 0) return;
+
+    currentStep += count;
+    sound.playStep();
+
+    // Cycle animated frames for authentic motion
+    if (count > 0) {
+      currentFrameIndex = (currentFrameIndex + 1) % RAW_FRAMES.length;
+    } else {
+      currentFrameIndex = (currentFrameIndex - 1 + RAW_FRAMES.length) % RAW_FRAMES.length;
+    }
+    
+    // Apply image
+    if (!barrelActive) {
+      stageImage.src = RAW_FRAMES[currentFrameIndex];
+    }
+
+    // Step bounce / vertical head-bob feeling + lane offset
+    const laneOffsetPx = currentLane * 32;
+    const verticalBob = Math.sin(currentStep * 0.8) * 3;
+    const laneTilt = currentLane * 1.5;
+    visualContainer.style.transform = `translateX(${laneOffsetPx}px) translateY(${verticalBob}px) rotate(${laneTilt}deg) scale(${1.02 + Math.cos(currentStep) * 0.008})`;
+
+    // Cadence calculation
+    const now = performance.now();
+    stepCountInterval++;
+    if (now - lastStepTime >= 1000) {
+      speedMeter.innerText = `CADENCE: ${stepCountInterval} STEPS/SEC`;
+      stepCountInterval = 0;
+      lastStepTime = now;
+    }
+
+    // Checkpoint updates every 300 steps
+    if (currentStep % 300 === 0) {
+      checkpointStep = currentStep;
+    }
+
+    // Barrel hazard trigger frequency (increases as step increases)
+    if (!barrelActive && currentStep > 150 && Math.random() < 0.07) {
+      triggerBarrel();
+    }
+
+    updateHUD();
+  }
+
+  // Dodge Action: -1 = Left, 1 = Right
+  function dodge(direction) {
+    if (isGameOver || !isGameStarted) return;
+    
+    const prevLane = currentLane;
+    currentLane = Math.max(-1, Math.min(1, currentLane + direction));
+    
+    if (prevLane !== currentLane) {
+      sound.playEvade();
+      
+      // Tilt visually to reinforce dodge lane shift
+      const offsetPx = currentLane * 32;
+      visualContainer.style.transform = `translateX(${offsetPx}px) translateY(${Math.sin(currentStep) * 3}px) rotate(${currentLane * 2}deg)`;
+      
+      dodgeTag.innerText = currentLane < 0 ? "EVADED LEFT" : currentLane > 0 ? "EVADED RIGHT" : "CENTERED";
+      dodgeTag.style.opacity = '1';
+      setTimeout(() => { dodgeTag.style.opacity = '0'; }, 450);
+
+      laneIndicator.classList.add('bg-white', 'text-black');
+      setTimeout(() => {
+        laneIndicator.classList.remove('bg-white', 'text-black');
+      }, 150);
+
+      updateHUD();
+    }
+  }
+
+  // Barrel Hazard Mechanism
+  function triggerBarrel() {
+    barrelActive = true;
+    barrelProgress = 0;
+    // Barrel drops along a randomized lane (-1, 0, or 1)
+    barrelLane = [-1, 0, 1][Math.floor(Math.random() * 3)];
+    
+    sound.playWarning();
+    hazardAlert.classList.remove('hidden');
+    hazardLayer.classList.remove('hidden');
+
+    // Use barrel frame during rolling barrel encounter
+    if (BARREL_FRAME) {
+      stageImage.src = BARREL_FRAME;
+    }
+
+    const stageHeight = document.getElementById('game-stage').clientHeight || 450;
+
+    function stepBarrel() {
+      if (!barrelActive) return;
+
+      barrelProgress += barrelSpeed;
+      const currentY = barrelProgress * (stageHeight + 110) - 50;
+      const laneOffset = barrelLane * 75; // Left, mid, or right offset
+
+      barrelSprite.style.transform = `translate(calc(-50% + ${laneOffset}px), ${currentY}px) rotate(${barrelProgress * 920}deg)`;
+
+      // Collision check at impact elevation zone
+      if (barrelProgress >= 0.68 && barrelProgress <= 0.86) {
+        if (currentLane === barrelLane) {
+          handleCollision();
+          return;
+        }
+      }
+
+      // Barrel passed successfully
+      if (barrelProgress >= 1.0) {
+        barrelActive = false;
+        hazardLayer.classList.add('hidden');
+        hazardAlert.classList.add('hidden');
+        cancelAnimationFrame(barrelAnimId);
+        stageImage.src = RAW_FRAMES[currentFrameIndex];
+        return;
+      }
+
+      barrelAnimId = requestAnimationFrame(stepBarrel);
+    }
+
+    barrelAnimId = requestAnimationFrame(stepBarrel);
+  }
+
+  function handleCollision() {
+    barrelActive = false;
+    cancelAnimationFrame(barrelAnimId);
+    sound.playImpact();
+
+    // Screen shake
+    visualContainer.style.transform = 'translate(10px, 10px)';
+    setTimeout(() => { visualContainer.style.transform = 'translate(-10px, -8px)'; }, 50);
+    setTimeout(() => { visualContainer.style.transform = 'translate(0px, 0px)'; }, 100);
+
+    torches--;
+    updateHUD();
+
+    if (torches <= 0) {
+      // Player perishes completely
+      isGameOver = true;
+      hazardLayer.classList.add('hidden');
+      hazardAlert.classList.add('hidden');
+      gameOverOverlay.classList.remove('hidden');
+    } else {
+      // Stumble backward but keep climbing
+      currentStep = Math.max(0, currentStep - 60);
+      hazardAlert.innerHTML = `&#9888; STRUCK! LOST A TORCH (${torches} REMAINING)`;
+      hazardAlert.classList.remove('hidden');
+      setTimeout(() => {
+        hazardAlert.classList.add('hidden');
+        hazardLayer.classList.add('hidden');
+        stageImage.src = RAW_FRAMES[currentFrameIndex];
+      }, 1200);
+      updateHUD();
+    }
+  }
+
+  function resetCheckpoint(fullReset = false) {
+    if (fullReset) {
+      currentStep = 0;
+      checkpointStep = 0;
+    } else {
+      currentStep = checkpointStep;
+    }
+    torches = 3;
+    isGameOver = false;
+    currentLane = 0;
+    barrelActive = false;
+    cancelAnimationFrame(barrelAnimId);
+    hazardLayer.classList.add('hidden');
+    hazardAlert.classList.add('hidden');
+    gameOverOverlay.classList.add('hidden');
+    visualContainer.style.transform = 'none';
+    stageImage.src = RAW_FRAMES[0];
+    updateHUD();
+  }
+
+  // Input Listeners: Keyboard
+  window.addEventListener('keydown', (e) => {
+    sound.init();
+    if (!isGameStarted) {
+      if (e.key === ' ' || e.key === 'Enter') {
+        startGame();
+      }
+      return;
+    }
+    if (isGameOver) {
+      if (e.key === ' ' || e.key === 'Enter') {
+        resetCheckpoint(false);
+      }
+      return;
+    }
+
+    switch (e.key) {
+      case 'ArrowUp':
+      case 'w':
+      case 'W':
+      case ' ':
+        e.preventDefault();
+        ascend(1);
+        break;
+      case 'ArrowDown':
+      case 's':
+      case 'S':
+        e.preventDefault();
+        ascend(-1); // Step down / retreat from rolling barrels!
+        break;
+      case 'ArrowLeft':
+      case 'a':
+      case 'A':
+        e.preventDefault();
+        dodge(-1);
+        break;
+      case 'ArrowRight':
+      case 'd':
+      case 'D':
+        e.preventDefault();
+        dodge(1);
+        break;
+    }
+  });
+
+  // Mouse Wheel: Scroll Up to Climb, Scroll Down to Retreat
+  window.addEventListener('wheel', (e) => {
+    sound.init();
+    if (!isGameStarted || isGameOver) return;
+    if (e.deltaY < 0) {
+      ascend(1); // Scroll up climbs forward
+    } else if (e.deltaY > 0) {
+      ascend(-1); // Scroll down steps down / retreats
+    }
+  }, { passive: true });
+
+  // Touch Gestures: Swipe Up to Ascend, Swipe Down to Retreat, Swipe Left/Right to Dodge
+  let touchStartY = 0;
+  let touchStartX = 0;
+
+  const gameStage = document.getElementById('game-stage');
+  gameStage.addEventListener('touchstart', (e) => {
+    sound.init();
+    if (!isGameStarted) return;
+    touchStartY = e.touches[0].clientY;
+    touchStartX = e.touches[0].clientX;
+  }, { passive: true });
+
+  gameStage.addEventListener('touchmove', (e) => {
+    if (!isGameStarted || isGameOver) return;
+    const touchEndY = e.touches[0].clientY;
+    const touchEndX = e.touches[0].clientX;
+    const diffY = touchStartY - touchEndY;
+    const diffX = touchEndX - touchStartX;
+
+    // Vertical Ascend / Retreat Swipe
+    if (Math.abs(diffY) > 20 && Math.abs(diffY) > Math.abs(diffX)) {
+      if (diffY > 0) ascend(1);
+      else ascend(-1);
+      touchStartY = touchEndY;
+    }
+    // Horizontal Evade Swipes
+    else if (Math.abs(diffX) > 30) {
+      if (diffX > 0) dodge(1);
+      else dodge(-1);
+      touchStartX = touchEndX;
+    }
+  }, { passive: true });
+
+  // Click/Tap on stage advances or dodges
+  gameStage.addEventListener('pointerdown', (e) => {
+    sound.init();
+    if (!isGameStarted || isGameOver) return;
+    const rect = gameStage.getBoundingClientRect();
+    const relativeX = (e.clientX - rect.left) / rect.width;
+    if (relativeX < 0.28) {
+      dodge(-1);
+    } else if (relativeX > 0.72) {
+      dodge(1);
+    } else {
+      ascend(1);
+    }
+  });
+
+  // Footer Virtual Buttons
+  document.getElementById('btn-ascend-step').addEventListener('click', (e) => {
+    e.stopPropagation();
+    sound.init();
+    ascend(1);
+  });
+  document.getElementById('btn-dodge-left').addEventListener('click', (e) => {
+    e.stopPropagation();
+    sound.init();
+    dodge(-1);
+  });
+  document.getElementById('btn-dodge-right').addEventListener('click', (e) => {
+    e.stopPropagation();
+    sound.init();
+    dodge(1);
+  });
+
+  // Title Start Button
+  function startGame() {
+    isGameStarted = true;
+    sound.init();
+    sound.playStep();
+    titleOverlay.classList.add('hidden');
+    updateHUD();
+  }
+  document.getElementById('start-game-btn').addEventListener('click', startGame);
+
+  // Game Over Retry Buttons
+  document.getElementById('retry-btn').addEventListener('click', () => resetCheckpoint(false));
+  document.getElementById('restart-all-btn').addEventListener('click', () => resetCheckpoint(true));
+
+  // Audio SFX Toggle
+  sfxToggleBtn.addEventListener('click', () => {
+    sound.enabled = !sound.enabled;
+    sfxStatus.innerText = sound.enabled ? 'ON' : 'OFF';
+    sfxStatus.className = sound.enabled ? 'text-white' : 'text-red-400';
+  });
+
+  // CRT Toggle
+  crtToggleBtn.addEventListener('click', () => {
+    scanlineOverlay.classList.toggle('hidden');
+  });
+
+  // Register PWA Service Worker
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    });
+  }
+
+  // Initialize HUD on mount
+  updateHUD();
+</script>
+<!-- END: Core Game Loop & Interaction Script -->
+
 </body>
 </html>
