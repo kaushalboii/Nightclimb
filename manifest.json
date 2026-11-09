@@ -1,11 +1,24 @@
 {
-  "name": "Nightclimb",
-  "short_name": "Nightclimb",
+  "name": "A Fool's Errand - The Dark Tower",
+  "short_name": "Fool's Errand",
   "start_url": "./index.html",
   "display": "fullscreen",
   "orientation": "portrait",
-  "background_color": "#090a0d",
-  "theme_color": "#090a0d",
-  "description": "The Infinite Spiral Ascent - A 1-Bit Precision Tower Climber"
+  "background_color": "#030303",
+  "theme_color": "#030303",
+  "description": "Ascend the Dark Tower in this 1-bit retro climber inspired by Browning's Childe Roland",
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
 }
-

@@ -1,7 +1,7 @@
 {
-  "name": "nightclimb",
+  "name": "fools-errand",
   "version": "1.0.0",
-  "description": "The Infinite Spiral Ascent - A 1-Bit Precision Tower Climber",
+  "description": "A Fool's Errand - The Dark Tower Ascent. A 1-bit retro climber inspired by Browning's Childe Roland.",
   "main": "index.html",
   "scripts": {
     "start": "python3 -m http.server 8080",
@@ -18,7 +18,10 @@
     "climber",
     "1-bit",
     "monochrome",
-    "arcade"
+    "arcade",
+    "retro",
+    "browning",
+    "childe-roland"
   ],
   "author": "",
   "license": "MIT",

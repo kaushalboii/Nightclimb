@@ -1,17 +1,18 @@
-// Nightclimb Offline Service Worker (PWA)
-const CACHE_NAME = 'nightclimb-v1';
+// A Fool's Errand - Offline Service Worker (PWA)
+const CACHE_NAME = 'fools-errand-v1';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './css/style.css',
+  './js/config.js',
   './js/audio.js',
-  './js/lore.js',
-  './js/obstacles.js',
+  './js/frames.js',
+  './js/hazards.js',
   './js/player.js',
-  './js/renderer.js',
+  './js/hud.js',
   './js/input.js',
-  './js/game.js'
+  './js/main.js'
 ];
 
 self.addEventListener('install', (event) => {
@@ -45,4 +46,3 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
-
