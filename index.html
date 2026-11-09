@@ -39,7 +39,7 @@
     };
   </script>
 
-  <!-- Retro CRT & Dither Styles -->
+  <!-- Custom Retro CRT & 1-Bit Styles -->
   <style data-purpose="crt-effects">
     /* Scanlines and vignette screen filter */
     .scanlines {
@@ -69,7 +69,6 @@
     .crt-flicker {
       animation: subtle-flicker 0.12s infinite alternate;
     }
-    /* Disable default touch actions to allow fluid custom game swipes */
     .touch-none-action {
       touch-action: none;
       -webkit-touch-callout: none;
@@ -108,11 +107,11 @@
           <span class="font-pixel text-sm" id="torches-count">3/3</span>
         </div>
         <!-- Audio Toggle Button -->
-        <button class="px-2 py-1 border border-[#3a3a3a] hover:border-[#888] bg-[#0f0f0f] text-[10px] tracking-widest uppercase transition-colors" data-purpose="sound-toggle" id="sfx-toggle-btn">
+        <button class="px-2 py-1 border border-[#3a3a3a] hover:border-[#888] bg-[#0f0f0f] text-[10px] tracking-widest uppercase transition-colors cursor-pointer" data-purpose="sound-toggle" id="sfx-toggle-btn">
           SFX: <span class="text-white" id="sfx-status">ON</span>
         </button>
         <!-- Scanline Toggle -->
-        <button class="px-1.5 py-1 border border-[#3a3a3a] hover:border-[#888] bg-[#0f0f0f] text-[10px] tracking-widest uppercase" id="crt-toggle-btn" title="Toggle CRT Filter">
+        <button class="px-1.5 py-1 border border-[#3a3a3a] hover:border-[#888] bg-[#0f0f0f] text-[10px] tracking-widest uppercase cursor-pointer" id="crt-toggle-btn" title="Toggle CRT Filter">
           CRT
         </button>
       </div>
@@ -121,28 +120,16 @@
 
     <!-- BEGIN: Main Stage Viewport -->
     <div class="relative flex-1 w-full h-full overflow-hidden flex items-center justify-center touch-none-action bg-black" data-purpose="interactive-stage" id="game-stage">
-      <!-- Active Frame Images Container (Pixel Art Slides) -->
-      <div class="absolute inset-0 flex items-center justify-center overflow-hidden transition-transform duration-150 ease-out" id="visual-frame-container">
-        <img alt="A Fool's Errand Stairwell" class="pixelated-render object-cover w-full h-full scale-[1.03] transition-opacity duration-150 select-none pointer-events-none" id="stage-image" src="assets/step_0.jpg"/>
-      </div>
+      <!-- 1-Bit Dynamic Canvas Game Viewport -->
+      <canvas id="game-canvas" class="pixelated-render w-full h-full object-contain select-none pointer-events-auto cursor-ns-resize"></canvas>
 
-      <!-- Stage HUD Overlays: Knight Crest (Top Left) & Authentic Flag Banner (Top Right) -->
+      <!-- Stage Overlays: Knight's Crest (Top-Left) & Authentic Flag Banner (Top-Right) -->
       <div class="pointer-events-none absolute top-3 left-3.5 z-30 text-white text-base font-pixel drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] opacity-90 select-none" id="stage-shield" title="Shield Crest">
         🛡️
       </div>
       <div class="pointer-events-none absolute top-3 right-3.5 z-30 flex items-center bg-white text-black font-pixel text-sm px-2.5 py-0.5 shadow-md border-l-4 border-black select-none" id="stage-flag-banner" style="clip-path: polygon(100% 0, 100% 100%, 0 100%, 8px 50%, 0 0);">
         <span id="flag-steps" class="font-bold mr-1">1843</span>
         <span>👣</span>
-      </div>
-
-      <!-- Barrel Hazard Layer -->
-      <div class="pointer-events-none absolute inset-0 z-20 overflow-hidden hidden" data-purpose="barrel-hazard" id="hazard-layer">
-        <!-- Rolling Barrel Graphic -->
-        <div class="absolute left-1/2 -translate-x-1/2 -top-16 w-16 h-16 rounded-full border-2 border-dashed border-white bg-black/90 flex items-center justify-center shadow-[0_0_20px_#fff]" id="barrel-sprite">
-          <div class="w-12 h-12 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-pixel text-white font-bold">
-            ⬤ ROLL
-          </div>
-        </div>
       </div>
 
       <!-- Barrel Imminent Warning Alert Banner -->
@@ -166,7 +153,7 @@
             Ascend The Spire
           </button>
           <span class="text-[10px] text-[#777] uppercase tracking-wider font-mono">
-            [Swipe Up · Wheel · Space · W]
+            [Swipe Up · Scroll Wheel · Space · W]
           </span>
         </div>
         <div class="flex justify-between w-full max-w-xs text-[11px] text-[#888] font-pixel uppercase tracking-widest border-t border-[#222] pt-3">
@@ -238,7 +225,6 @@
 
 <!-- BEGIN: Audio Engine (Web Audio API procedural sound generation) -->
 <script data-purpose="audio-engine">
-  // Procedural 1-bit sound generator: zero external audio dependencies
   class SoundEngine {
     constructor() {
       this.ctx = null;
@@ -260,20 +246,20 @@
       this.init();
       if (!this.ctx) return;
       const now = this.ctx.currentTime;
-      // Low stone thud
+      // Low stone step thud
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(110 + Math.random() * 20, now);
-      osc.frequency.exponentialRampToValueAtTime(30, now + 0.08);
-      gain.gain.setValueAtTime(0.3, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+      osc.frequency.setValueAtTime(120 + Math.random() * 25, now);
+      osc.frequency.exponentialRampToValueAtTime(32, now + 0.07);
+      gain.gain.setValueAtTime(0.28, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.07);
       osc.connect(gain);
       gain.connect(this.ctx.destination);
       osc.start(now);
-      osc.stop(now + 0.08);
+      osc.stop(now + 0.075);
 
-      // Gravel click
+      // Gravel noise click
       try {
         const noiseBuffer = this.ctx.createBuffer(1, Math.floor(this.ctx.sampleRate * 0.02), this.ctx.sampleRate);
         const output = noiseBuffer.getChannelData(0);
@@ -290,10 +276,7 @@
         whiteNoise.start(now);
       } catch (e) {}
 
-      // Trigger mobile haptic if available
-      if (navigator.vibrate) {
-        navigator.vibrate(8);
-      }
+      if (navigator.vibrate) navigator.vibrate(8);
     }
     playEvade() {
       if (!this.enabled) return;
@@ -304,13 +287,13 @@
       const gain = this.ctx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(350, now);
-      osc.frequency.exponentialRampToValueAtTime(600, now + 0.09);
-      gain.gain.setValueAtTime(0.2, now);
+      osc.frequency.exponentialRampToValueAtTime(650, now + 0.09);
+      gain.gain.setValueAtTime(0.22, now);
       gain.gain.exponentialRampToValueAtTime(0.01, now + 0.09);
       osc.connect(gain);
       gain.connect(this.ctx.destination);
       osc.start(now);
-      osc.stop(now + 0.09);
+      osc.stop(now + 0.095);
       if (navigator.vibrate) navigator.vibrate(12);
     }
     playWarning() {
@@ -321,14 +304,14 @@
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(140, now);
-      osc.frequency.linearRampToValueAtTime(90, now + 0.2);
+      osc.frequency.setValueAtTime(150, now);
+      osc.frequency.linearRampToValueAtTime(95, now + 0.22);
       gain.gain.setValueAtTime(0.25, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
       osc.connect(gain);
       gain.connect(this.ctx.destination);
       osc.start(now);
-      osc.stop(now + 0.2);
+      osc.stop(now + 0.22);
       if (navigator.vibrate) navigator.vibrate([20, 30, 20]);
     }
     playImpact() {
@@ -339,7 +322,7 @@
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       osc.type = 'square';
-      osc.frequency.setValueAtTime(90, now);
+      osc.frequency.setValueAtTime(95, now);
       osc.frequency.exponentialRampToValueAtTime(20, now + 0.35);
       gain.gain.setValueAtTime(0.5, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
@@ -347,40 +330,38 @@
       gain.connect(this.ctx.destination);
       osc.start(now);
       osc.stop(now + 0.35);
-      if (navigator.vibrate) navigator.vibrate([50, 60, 100]);
+      if (navigator.vibrate) navigator.vibrate([60, 60, 100]);
     }
   }
   const sound = new SoundEngine();
 </script>
 <!-- END: Audio Engine -->
 
-<!-- BEGIN: Core Game Loop & Interaction Script -->
-<script data-purpose="gameplay-controller">
-  // Authentic 1-bit frames matching user reference images
-  const FALLBACK_FRAME = 'assets/step_0.jpg';
-  const RAW_FRAMES = [
-    'assets/step_0.jpg',
-    'assets/step_1.jpg',
-    'assets/step_2.jpg',
-    'assets/step_3.jpg',
-    'assets/step_4.jpg'
+<!-- BEGIN: 1-Bit Procedural Canvas Game Engine -->
+<script data-purpose="gameplay-engine">
+  // Virtual Buffer Dimensions (230x499 matching authentic Playdate / 460x998 mobile portrait)
+  const V_W = 230;
+  const V_H = 499;
+
+  // Offscreen buffer for pure 1-bit rendering
+  const offscreen = document.createElement('canvas');
+  offscreen.width = V_W;
+  offscreen.height = V_H;
+  const bCtx = offscreen.getContext('2d', { willReadFrequently: true });
+
+  // On-screen presentation canvas
+  const canvas = document.getElementById('game-canvas');
+  const ctx = canvas.getContext('2d');
+
+  // 4x4 Bayer Dithering Matrix
+  const bayer4x4 = [
+    [  0, 128,  32, 160],
+    [192,  64, 224,  96],
+    [ 48, 176,  16, 144],
+    [240, 112, 208,  80]
   ];
-  const BARREL_FRAME = 'assets/step_barrel.jpg';
 
-  // Preloaded image objects for instantaneous frame cycling
-  const PRELOADED_IMAGES = [];
-  RAW_FRAMES.forEach((src) => {
-    const img = new Image();
-    img.src = src;
-    img.onerror = () => { img.src = 'assets/scene.png'; };
-    PRELOADED_IMAGES.push(img);
-  });
-  const barrelImg = new Image();
-  barrelImg.src = BARREL_FRAME;
-  barrelImg.onerror = () => { barrelImg.src = 'assets/scene.png'; };
-  PRELOADED_IMAGES.push(barrelImg);
-
-  // Browning's "Childe Roland to the Dark Tower Came" narrative milestones
+  // Narrative Cantos from Browning's "Childe Roland to the Dark Tower Came"
   const STORY_BEATS = [
     { step: 0, act: "ACT I · THE DESOLATE GATE", poem: "My first thought was, he lied in every word..." },
     { step: 100, act: "ACT I · THE DESOLATE GATE", poem: "That hoary cripple, with malicious eye askance to watch the working of his lie..." },
@@ -393,26 +374,41 @@
     { step: 2700, act: "ACT IV · THE DARK TOWER REACHED", poem: "And yet dauntless the slug-horn to my lips I set, and blew: 'Childe Roland to the Dark Tower came.'" }
   ];
 
-  // State Variables
+  // Game & Player State
   const savedStep = parseInt(localStorage.getItem('fools_errand_step') || '1843', 10);
-  let currentStep = savedStep;
+  const player = {
+    step: savedStep,
+    targetStep: savedStep,
+    velocity: 0,
+    lastFootstep: savedStep,
+    walkCycle: 0,
+    lane: 0,          // -1: Left, 0: Mid, 1: Right
+    laneSmooth: 0     // Smooth interpolated lane position
+  };
+
   let checkpointStep = savedStep;
-  let currentFrameIndex = 0;
-  let currentLane = 0; // -1: Left, 0: Mid, 1: Right
   let torches = 3;
   let isGameOver = false;
   let isGameStarted = false;
-  let lastStepTime = performance.now();
-  let stepCountInterval = 0;
-  let barrelActive = false;
-  let barrelProgress = 0;
-  let barrelLane = 0;
-  let barrelSpeed = 0.024;
-  let barrelAnimId = null;
+  let time = 0;
+  let lastTime = performance.now();
+  let stepCadenceCount = 0;
+  let lastCadenceTime = performance.now();
+  let shakeTime = 0;
 
-  // DOM References
-  const stageImage = document.getElementById('stage-image');
-  const visualContainer = document.getElementById('visual-frame-container');
+  // Barrel Hazard State
+  const barrel = {
+    active: false,
+    step: 0,
+    lane: 0,
+    speed: 16.0,      // Steps per second
+    rotation: 0
+  };
+
+  // Next barrel trigger altitude
+  let nextBarrelStep = savedStep + 35 + Math.floor(Math.random() * 30);
+
+  // DOM Elements
   const altitudeDisplay = document.getElementById('altitude-display');
   const flagSteps = document.getElementById('flag-steps');
   const laneIndicator = document.getElementById('lane-indicator');
@@ -423,8 +419,6 @@
   const rankTitle = document.getElementById('rank-title');
   const titleOverlay = document.getElementById('title-overlay');
   const gameOverOverlay = document.getElementById('game-over-overlay');
-  const hazardLayer = document.getElementById('hazard-layer');
-  const barrelSprite = document.getElementById('barrel-sprite');
   const hazardAlert = document.getElementById('hazard-alert');
   const dodgeTag = document.getElementById('dodge-tag');
   const sfxToggleBtn = document.getElementById('sfx-toggle-btn');
@@ -432,111 +426,89 @@
   const crtToggleBtn = document.getElementById('crt-toggle-btn');
   const scanlineOverlay = document.getElementById('scanline-overlay');
 
-  // Set initial frame
-  stageImage.src = RAW_FRAMES[0];
-  stageImage.onerror = () => { stageImage.src = 'assets/scene.png'; };
+  // Tower Geometry Constants
+  const TOWER_X = 118;
+  const TOWER_R = 50;
+  const STAIR_W = 34;
+  const PIXELS_PER_STEP = 11;
+  const STEPS_PER_TURN = 14;
 
-  // UI Updates
+  // Compute 3D Cylindrical Coordinates for any step
+  function getStepCoords(s, camStep, camY, laneOffset = 0) {
+    const delta = s - camStep;
+    const y = camY - delta * PIXELS_PER_STEP;
+
+    // Spiral wraps around the cylinder (counter-clockwise ascending)
+    const angle = -(s / STEPS_PER_TURN) * Math.PI * 2;
+    const sinA = Math.sin(angle);
+    const cosA = Math.cos(angle);
+
+    const radius = TOWER_R + STAIR_W * 0.5 + laneOffset * 9;
+    const x = TOWER_X + sinA * radius;
+
+    return {
+      x: Math.round(x),
+      y: Math.round(y),
+      z: cosA,
+      sinA,
+      cosA,
+      isFront: cosA >= -0.15
+    };
+  }
+
+  // Update HUD Metrics
   function updateHUD() {
-    altitudeDisplay.innerHTML = `${currentStep} <span class="text-[12px]">&#9824;</span>`;
-    if (flagSteps) {
-      flagSteps.innerText = currentStep.toString();
-    }
-    
-    // Update Lane
-    const laneNames = { '-1': 'LEFT', '0': 'MID', '1': 'RIGHT' };
-    laneIndicator.innerText = laneNames[currentLane] || 'MID';
+    const roundedStep = Math.max(0, Math.round(player.step));
+    altitudeDisplay.innerHTML = `${roundedStep} <span class="text-[12px]">&#9824;</span>`;
+    if (flagSteps) flagSteps.innerText = roundedStep.toString();
 
-    // Update story narrative based on altitude
+    const laneNames = { '-1': 'LEFT', '0': 'MID', '1': 'RIGHT' };
+    laneIndicator.innerText = laneNames[player.lane] || 'MID';
+
     let activeBeat = STORY_BEATS[0];
     for (const beat of STORY_BEATS) {
-      if (currentStep >= beat.step) {
-        activeBeat = beat;
-      }
+      if (roundedStep >= beat.step) activeBeat = beat;
     }
     actIndicator.innerHTML = activeBeat.act;
     poemText.innerHTML = `&ldquo;${activeBeat.poem}&rdquo;`;
 
-    // Update Torches
     torchesCount.innerText = `${torches}/3`;
 
-    // Rank Title progression
-    if (currentStep < 500) rankTitle.innerText = "RANK: VAGRANT";
-    else if (currentStep < 1200) rankTitle.innerText = "RANK: PILGRIM";
-    else if (currentStep < 2000) rankTitle.innerText = "RANK: SQUIRE";
+    if (roundedStep < 500) rankTitle.innerText = "RANK: VAGRANT";
+    else if (roundedStep < 1200) rankTitle.innerText = "RANK: PILGRIM";
+    else if (roundedStep < 2000) rankTitle.innerText = "RANK: SQUIRE";
     else rankTitle.innerText = "RANK: CHILDE ROLAND";
 
-    // Save step progress to localStorage
     try {
-      localStorage.setItem('fools_errand_step', currentStep.toString());
+      localStorage.setItem('fools_errand_step', roundedStep.toString());
     } catch (_) {}
   }
 
-  // Step Climbing Action (Forward or Retreat)
-  function ascend(count = 1) {
+  // Ascent Action (Climb forward or step back)
+  function addStep(count = 1) {
     if (isGameOver || !isGameStarted) return;
+    if (count < 0 && player.targetStep <= 0) return;
 
-    // Prevent negative steps below 0
-    if (count < 0 && currentStep <= 0) return;
-
-    currentStep += count;
-    sound.playStep();
-
-    // Cycle animated frames for authentic motion
-    if (count > 0) {
-      currentFrameIndex = (currentFrameIndex + 1) % RAW_FRAMES.length;
-    } else {
-      currentFrameIndex = (currentFrameIndex - 1 + RAW_FRAMES.length) % RAW_FRAMES.length;
-    }
-    
-    // Apply image
-    if (!barrelActive) {
-      stageImage.src = RAW_FRAMES[currentFrameIndex];
-    }
-
-    // Step bounce / vertical head-bob feeling + lane offset
-    const laneOffsetPx = currentLane * 32;
-    const verticalBob = Math.sin(currentStep * 0.8) * 3;
-    const laneTilt = currentLane * 1.5;
-    visualContainer.style.transform = `translateX(${laneOffsetPx}px) translateY(${verticalBob}px) rotate(${laneTilt}deg) scale(${1.02 + Math.cos(currentStep) * 0.008})`;
-
-    // Cadence calculation
-    const now = performance.now();
-    stepCountInterval++;
-    if (now - lastStepTime >= 1000) {
-      speedMeter.innerText = `CADENCE: ${stepCountInterval} STEPS/SEC`;
-      stepCountInterval = 0;
-      lastStepTime = now;
-    }
+    player.targetStep += count;
+    sound.init();
 
     // Checkpoint updates every 300 steps
-    if (currentStep % 300 === 0) {
-      checkpointStep = currentStep;
+    if (Math.round(player.targetStep) % 300 === 0) {
+      checkpointStep = Math.round(player.targetStep);
     }
-
-    // Barrel hazard trigger frequency (increases as step increases)
-    if (!barrelActive && currentStep > 150 && Math.random() < 0.07) {
-      triggerBarrel();
-    }
-
-    updateHUD();
   }
 
-  // Dodge Action: -1 = Left, 1 = Right
+  // Dodge Action (-1: Left, 1: Right)
   function dodge(direction) {
     if (isGameOver || !isGameStarted) return;
-    
-    const prevLane = currentLane;
-    currentLane = Math.max(-1, Math.min(1, currentLane + direction));
-    
-    if (prevLane !== currentLane) {
+
+    const prevLane = player.lane;
+    player.lane = Math.max(-1, Math.min(1, player.lane + direction));
+
+    if (prevLane !== player.lane) {
       sound.playEvade();
-      
-      // Tilt visually to reinforce dodge lane shift
-      const offsetPx = currentLane * 32;
-      visualContainer.style.transform = `translateX(${offsetPx}px) translateY(${Math.sin(currentStep) * 3}px) rotate(${currentLane * 2}deg)`;
-      
-      dodgeTag.innerText = currentLane < 0 ? "EVADED LEFT" : currentLane > 0 ? "EVADED RIGHT" : "CENTERED";
+
+      dodgeTag.innerText = player.lane < 0 ? "EVADED LEFT" : player.lane > 0 ? "EVADED RIGHT" : "CENTERED";
       dodgeTag.style.opacity = '1';
       setTimeout(() => { dodgeTag.style.opacity = '0'; }, 450);
 
@@ -549,123 +521,585 @@
     }
   }
 
-  // Barrel Hazard Mechanism
+  // Spawn a Rolling Barrel Hazard
   function triggerBarrel() {
-    barrelActive = true;
-    barrelProgress = 0;
-    // Barrel drops along a randomized lane (-1, 0, or 1)
-    barrelLane = [-1, 0, 1][Math.floor(Math.random() * 3)];
-    
+    if (barrel.active) return;
+    barrel.active = true;
+    barrel.step = player.step + 16;
+    barrel.lane = [-1, 0, 1][Math.floor(Math.random() * 3)];
+    barrel.rotation = 0;
+    barrel.speed = 12.0 + Math.random() * 4.0;
+
     sound.playWarning();
     hazardAlert.classList.remove('hidden');
-    hazardLayer.classList.remove('hidden');
-
-    // Use barrel frame during rolling barrel encounter
-    if (BARREL_FRAME) {
-      stageImage.src = BARREL_FRAME;
-    }
-
-    const stageHeight = document.getElementById('game-stage').clientHeight || 450;
-
-    function stepBarrel() {
-      if (!barrelActive) return;
-
-      barrelProgress += barrelSpeed;
-      const currentY = barrelProgress * (stageHeight + 110) - 50;
-      const laneOffset = barrelLane * 75; // Left, mid, or right offset
-
-      barrelSprite.style.transform = `translate(calc(-50% + ${laneOffset}px), ${currentY}px) rotate(${barrelProgress * 920}deg)`;
-
-      // Collision check at impact elevation zone
-      if (barrelProgress >= 0.68 && barrelProgress <= 0.86) {
-        if (currentLane === barrelLane) {
-          handleCollision();
-          return;
-        }
-      }
-
-      // Barrel passed successfully
-      if (barrelProgress >= 1.0) {
-        barrelActive = false;
-        hazardLayer.classList.add('hidden');
-        hazardAlert.classList.add('hidden');
-        cancelAnimationFrame(barrelAnimId);
-        stageImage.src = RAW_FRAMES[currentFrameIndex];
-        return;
-      }
-
-      barrelAnimId = requestAnimationFrame(stepBarrel);
-    }
-
-    barrelAnimId = requestAnimationFrame(stepBarrel);
   }
 
+  // Handle Collision with Barrel
   function handleCollision() {
-    barrelActive = false;
-    cancelAnimationFrame(barrelAnimId);
+    barrel.active = false;
+    hazardAlert.classList.add('hidden');
     sound.playImpact();
-
-    // Screen shake
-    visualContainer.style.transform = 'translate(10px, 10px)';
-    setTimeout(() => { visualContainer.style.transform = 'translate(-10px, -8px)'; }, 50);
-    setTimeout(() => { visualContainer.style.transform = 'translate(0px, 0px)'; }, 100);
+    shakeTime = 0.4;
 
     torches--;
     updateHUD();
 
     if (torches <= 0) {
-      // Player perishes completely
       isGameOver = true;
-      hazardLayer.classList.add('hidden');
-      hazardAlert.classList.add('hidden');
       gameOverOverlay.classList.remove('hidden');
     } else {
-      // Stumble backward but keep climbing
-      currentStep = Math.max(0, currentStep - 60);
+      player.targetStep = Math.max(0, player.targetStep - 50);
+      player.step = player.targetStep;
       hazardAlert.innerHTML = `&#9888; STRUCK! LOST A TORCH (${torches} REMAINING)`;
       hazardAlert.classList.remove('hidden');
       setTimeout(() => {
         hazardAlert.classList.add('hidden');
-        hazardLayer.classList.add('hidden');
-        stageImage.src = RAW_FRAMES[currentFrameIndex];
       }, 1200);
-      updateHUD();
     }
   }
 
+  // Checkpoint & Game Over Reset
   function resetCheckpoint(fullReset = false) {
     if (fullReset) {
-      currentStep = 0;
+      player.step = 0;
+      player.targetStep = 0;
       checkpointStep = 0;
     } else {
-      currentStep = checkpointStep;
+      player.step = checkpointStep;
+      player.targetStep = checkpointStep;
     }
+    player.lane = 0;
+    player.laneSmooth = 0;
     torches = 3;
     isGameOver = false;
-    currentLane = 0;
-    barrelActive = false;
-    cancelAnimationFrame(barrelAnimId);
-    hazardLayer.classList.add('hidden');
+    barrel.active = false;
+    nextBarrelStep = player.step + 40;
     hazardAlert.classList.add('hidden');
     gameOverOverlay.classList.add('hidden');
-    visualContainer.style.transform = 'none';
-    stageImage.src = RAW_FRAMES[0];
     updateHUD();
   }
 
-  // Input Listeners: Keyboard
+  // =========================================================================
+  // RENDER ENGINE
+  // =========================================================================
+
+  function render(now) {
+    requestAnimationFrame(render);
+
+    const dt = Math.min(0.06, (now - lastTime) / 1000);
+    lastTime = now;
+    time += dt;
+
+    if (isGameStarted && !isGameOver) {
+      // Smooth movement interpolation
+      const diff = player.targetStep - player.step;
+      player.velocity = diff * 12.0;
+      player.step += player.velocity * dt;
+
+      // Smooth lane transition
+      player.laneSmooth += (player.lane - player.laneSmooth) * 14.0 * dt;
+
+      // Leg walk cycle accumulation
+      if (Math.abs(player.velocity) > 0.05) {
+        player.walkCycle += Math.abs(player.velocity) * dt * 4.8;
+        if (Math.abs(player.step - player.lastFootstep) >= 0.85) {
+          player.lastFootstep = player.step;
+          sound.playStep();
+          stepCadenceCount++;
+        }
+      }
+
+      // Check for scheduled barrel spawn
+      if (!barrel.active && player.step >= nextBarrelStep) {
+        triggerBarrel();
+        nextBarrelStep = player.step + 40 + Math.floor(Math.random() * 45);
+      }
+
+      // Barrel movement and collision
+      if (barrel.active) {
+        barrel.step -= barrel.speed * dt;
+        barrel.rotation += barrel.speed * dt * 1.5;
+
+        // Collision check near player elevation
+        if (Math.abs(barrel.step - player.step) < 0.6) {
+          if (Math.abs(barrel.lane - player.lane) < 0.6) {
+            handleCollision();
+          }
+        }
+
+        // Barrel rolled past
+        if (barrel.step < player.step - 10) {
+          barrel.active = false;
+          hazardAlert.classList.add('hidden');
+          sound.playEvade();
+        }
+      }
+
+      // Cadence Meter (steps per second)
+      if (now - lastCadenceTime >= 1000) {
+        speedMeter.innerText = `CADENCE: ${stepCadenceCount} STEPS/SEC`;
+        stepCadenceCount = 0;
+        lastCadenceTime = now;
+      }
+
+      updateHUD();
+    }
+
+    const b = bCtx;
+    const w = V_W;
+    const h = V_H;
+
+    // Screen Shake Offset
+    let shakeX = 0;
+    let shakeY = 0;
+    if (shakeTime > 0) {
+      shakeTime -= dt;
+      shakeX = (Math.random() - 0.5) * 8;
+      shakeY = (Math.random() - 0.5) * 8;
+    }
+
+    b.save();
+    b.translate(shakeX, shakeY);
+
+    // 1. Deep Black Background
+    b.fillStyle = '#000000';
+    b.fillRect(-10, -10, w + 20, h + 20);
+
+    const camStep = player.step;
+    const camY = Math.round(h * 0.56);
+
+    // 2. Gothic Arch Window with Crescent Moon (Top-Left)
+    drawArchWindow(b, camStep);
+
+    // 3. Back-half of Spiral Staircase (behind tower)
+    drawStairs(b, camStep, camY, false);
+
+    // 4. Central Cylindrical Tower with Stone Masonry & Wall Sconces
+    drawTowerCylinder(b, camStep, camY);
+
+    // 5. Front-half of Spiral Staircase (in front of tower)
+    drawStairs(b, camStep, camY, true);
+
+    // 6. Rolling Barrel Hazard
+    if (barrel.active) {
+      drawBarrel(b, barrel, camStep, camY);
+    }
+
+    // 7. Dynamic 1-Bit Torchlight Radiance Halos
+    drawTorchLights(b, camStep, camY);
+
+    // 8. 1-Bit Bayer Matrix Dithering (Stipple rendering)
+    applyBayerDither(b, w, h);
+
+    // 9. Roland the Squire (Animated walking legs, cloak, torch with flickering fire)
+    drawRoland(b, player, camStep, camY);
+
+    b.restore();
+
+    // 10. Present offscreen buffer to high-resolution display canvas
+    presentCanvas();
+  }
+
+  // =========================================================================
+  // PROCEDURAL 1-BIT GRAPHICS ROUTINES
+  // =========================================================================
+
+  function drawArchWindow(b, camStep) {
+    const winX = 42;
+    const winY = 110 + ((camStep * 1.5) % 320) - 80;
+    if (winY < -60 || winY > V_H + 60) return;
+
+    b.save();
+    // Dark stone frame
+    b.fillStyle = '#181818';
+    b.beginPath();
+    b.arc(winX, winY, 14, Math.PI, 0);
+    b.lineTo(winX + 14, winY + 36);
+    b.lineTo(winX - 14, winY + 36);
+    b.closePath();
+    b.fill();
+
+    // Bright Moon
+    b.fillStyle = '#ffffff';
+    b.beginPath();
+    b.arc(winX - 1, winY + 4, 11, 0, Math.PI * 2);
+    b.fill();
+
+    // Soft stippled moonlight beam
+    const halo = b.createRadialGradient(winX, winY + 4, 11, winX, winY + 4, 46);
+    halo.addColorStop(0, 'rgba(255, 255, 255, 0.65)');
+    halo.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    b.fillStyle = halo;
+    b.beginPath();
+    b.arc(winX, winY + 4, 46, 0, Math.PI * 2);
+    b.fill();
+
+    b.restore();
+  }
+
+  function drawTowerCylinder(b, camStep, camY) {
+    b.save();
+    const cx = TOWER_X;
+    const r = TOWER_R;
+    const leftX = cx - r;
+    const rightX = cx + r;
+
+    // Curved cylindrical shading
+    const grad = b.createLinearGradient(leftX, 0, rightX, 0);
+    grad.addColorStop(0.0, '#101010');
+    grad.addColorStop(0.25, '#3c3c3c');
+    grad.addColorStop(0.55, '#626262');
+    grad.addColorStop(0.85, '#323232');
+    grad.addColorStop(1.0, '#0c0c0c');
+
+    b.fillStyle = grad;
+    b.fillRect(leftX, 0, r * 2, V_H);
+
+    // Horizontal stone course lines with continuous vertical scrolling
+    b.strokeStyle = '#050505';
+    b.lineWidth = 1;
+    const blockH = 12;
+    const scrollY = (camStep * PIXELS_PER_STEP) % blockH;
+
+    for (let y = -blockH; y < V_H + blockH; y += blockH) {
+      const lineY = Math.round(y + scrollY);
+      b.beginPath();
+      b.moveTo(leftX, lineY);
+      b.lineTo(rightX, lineY);
+      b.stroke();
+
+      // Staggered vertical masonry notches
+      const row = Math.floor((camStep * PIXELS_PER_STEP + y) / blockH);
+      const shift = (row % 2) * 12;
+      for (let bx = leftX + 8 + shift; bx < rightX - 4; bx += 20) {
+        b.beginPath();
+        b.moveTo(bx, lineY);
+        b.lineTo(bx, lineY + blockH);
+        b.stroke();
+      }
+    }
+
+    // Wall-mounted iron torches with flickering flames
+    const torchEvery = 14;
+    const baseTorch = Math.floor((camStep - 20) / torchEvery) * torchEvery;
+    for (let ts = baseTorch; ts < camStep + 25; ts += torchEvery) {
+      const angle = -(ts / STEPS_PER_TURN) * Math.PI * 2;
+      const cosA = Math.cos(angle);
+      if (cosA > 0.2) {
+        const sy = camY - (ts - camStep) * PIXELS_PER_STEP;
+        const sx = cx + Math.sin(angle) * (r - 2);
+
+        // Iron wall sconce
+        b.fillStyle = '#080808';
+        b.fillRect(sx - 2, sy - 8, 4, 12);
+
+        // Flickering flame
+        b.fillStyle = '#ffffff';
+        b.beginPath();
+        b.moveTo(sx - 2, sy - 8);
+        b.lineTo(sx, sy - 15 - Math.sin(time * 24 + ts) * 3);
+        b.lineTo(sx + 2, sy - 8);
+        b.closePath();
+        b.fill();
+      }
+    }
+
+    b.restore();
+  }
+
+  function drawStairs(b, camStep, camY, renderFront) {
+    b.save();
+    const range = 22;
+    const minS = Math.floor(camStep - range);
+    const maxS = Math.ceil(camStep + range);
+
+    for (let s = minS; s <= maxS; s++) {
+      const delta = s - camStep;
+      const y = camY - delta * PIXELS_PER_STEP;
+
+      const angle = -(s / STEPS_PER_TURN) * Math.PI * 2;
+      const sinA = Math.sin(angle);
+      const cosA = Math.cos(angle);
+
+      const innerX = TOWER_X + sinA * TOWER_R;
+      const outerX = TOWER_X + sinA * (TOWER_R + STAIR_W);
+
+      const isFront = cosA >= -0.15;
+      if (isFront !== renderFront) continue;
+
+      const light = Math.max(0.18, (cosA + 1.0) * 0.45);
+      const shade = Math.floor(light * 220);
+      const stepThick = 5;
+
+      // Stone Step Tread & Riser
+      b.fillStyle = renderFront ? `rgb(${shade}, ${shade}, ${shade})` : '#161616';
+      b.strokeStyle = '#050505';
+      b.lineWidth = 1;
+
+      b.beginPath();
+      b.moveTo(innerX, y);
+      b.lineTo(outerX, y);
+      b.lineTo(outerX, y + stepThick);
+      b.lineTo(innerX, y + stepThick);
+      b.closePath();
+      b.fill();
+      b.stroke();
+
+      if (renderFront) {
+        // Bright Top Tread Edge
+        b.strokeStyle = `rgb(${Math.min(255, shade + 45)}, ${Math.min(255, shade + 45)}, ${Math.min(255, shade + 45)})`;
+        b.beginPath();
+        b.moveTo(innerX, y);
+        b.lineTo(outerX, y);
+        b.stroke();
+
+        // Under-step support corbel
+        b.fillStyle = '#1a1a1a';
+        b.fillRect(Math.min(innerX, outerX) + 6, y + stepThick, 6, 4);
+      }
+    }
+    b.restore();
+  }
+
+  // Draw Rolling Oak Barrel
+  function drawBarrel(b, barrel, camStep, camY) {
+    const coords = getStepCoords(barrel.step, camStep, camY, barrel.lane);
+    if (!coords.isFront && coords.z < -0.3) return;
+
+    b.save();
+    b.translate(coords.x, coords.y - 7);
+    b.rotate(barrel.rotation);
+
+    const br = 8;
+    // Barrel Body
+    b.fillStyle = '#ffffff';
+    b.strokeStyle = '#000000';
+    b.lineWidth = 1.5;
+    b.beginPath();
+    b.arc(0, 0, br, 0, Math.PI * 2);
+    b.fill();
+    b.stroke();
+
+    // Wooden Staves & Iron Hoops
+    b.fillStyle = '#000000';
+    b.beginPath();
+    b.arc(0, 0, br * 0.65, 0, Math.PI * 2);
+    b.fill();
+
+    b.fillStyle = '#ffffff';
+    b.fillRect(-br, -1, br * 2, 2);
+    b.fillRect(-1, -br, 2, br * 2);
+
+    b.restore();
+  }
+
+  function drawTorchLights(b, camStep, camY) {
+    b.save();
+
+    // 1. Roland's Torch Light Halo
+    const rolandPos = getStepCoords(camStep, camStep, camY, player.laneSmooth);
+    const tx = rolandPos.x - 8;
+    const ty = rolandPos.y - 18;
+    const flicker = Math.sin(time * 20) * 2.5 + Math.cos(time * 33) * 1.5;
+    const radius = 68 + flicker;
+
+    const torchGrad = b.createRadialGradient(tx, ty, 4, tx, ty, radius);
+    torchGrad.addColorStop(0.0, 'rgba(255, 255, 255, 0.95)');
+    torchGrad.addColorStop(0.35, 'rgba(215, 215, 215, 0.65)');
+    torchGrad.addColorStop(0.7, 'rgba(110, 110, 110, 0.25)');
+    torchGrad.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
+
+    b.globalCompositeOperation = 'screen';
+    b.fillStyle = torchGrad;
+    b.beginPath();
+    b.arc(tx, ty, radius, 0, Math.PI * 2);
+    b.fill();
+
+    // 2. Wall Sconce Torches Halos
+    const torchEvery = 14;
+    const baseTorch = Math.floor((camStep - 15) / torchEvery) * torchEvery;
+    for (let ts = baseTorch; ts < camStep + 18; ts += torchEvery) {
+      const angle = -(ts / STEPS_PER_TURN) * Math.PI * 2;
+      if (Math.cos(angle) > 0.2) {
+        const sy = camY - (ts - camStep) * PIXELS_PER_STEP;
+        const sx = TOWER_X + Math.sin(angle) * (TOWER_R - 2);
+
+        const wGrad = b.createRadialGradient(sx, sy - 15, 3, sx, sy - 15, 38);
+        wGrad.addColorStop(0.0, 'rgba(255, 255, 255, 0.7)');
+        wGrad.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
+        b.fillStyle = wGrad;
+        b.beginPath();
+        b.arc(sx, sy - 15, 38, 0, Math.PI * 2);
+        b.fill();
+      }
+    }
+
+    b.restore();
+  }
+
+  // 1-Bit Bayer Matrix Dithering
+  function applyBayerDither(b, w, h) {
+    const imgData = b.getImageData(0, 0, w, h);
+    const d = imgData.data;
+    const bayer = bayer4x4;
+
+    for (let y = 0; y < h; y++) {
+      const row = y * w * 4;
+      const bRow = bayer[y % 4];
+
+      for (let x = 0; x < w; x++) {
+        const i = row + (x * 4);
+        const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+        const threshold = bRow[x % 4];
+
+        const val = gray >= threshold ? 255 : 0;
+        d[i] = val;
+        d[i + 1] = val;
+        d[i + 2] = val;
+        d[i + 3] = 255;
+      }
+    }
+
+    b.putImageData(imgData, 0, 0);
+  }
+
+  // Roland Sprite (Facing left, climbing the stairs with torch)
+  function drawRoland(b, player, camStep, camY) {
+    const pos = getStepCoords(camStep, camStep, camY, player.laneSmooth);
+
+    b.save();
+    b.translate(pos.x, pos.y);
+
+    // Facing left towards ascending stairs
+    b.scale(-1, 1);
+
+    const isMoving = Math.abs(player.velocity) > 0.05;
+    const walkPhase = Math.sin(player.walkCycle * Math.PI * 2);
+
+    let frontLegY = 0;
+    let backLegY = 0;
+    let bodyBob = 0;
+
+    if (isMoving) {
+      frontLegY = Math.max(0, walkPhase * 6);
+      backLegY = Math.max(0, -walkPhase * 4);
+      bodyBob = Math.abs(walkPhase) * 2.5;
+    }
+
+    // Step Shadow
+    b.fillStyle = '#000000';
+    b.fillRect(-7, 0, 14, 2);
+
+    // 1. Back Leg
+    b.fillStyle = '#000000';
+    b.fillRect(-5, -8 + backLegY - bodyBob, 3.5, 8 - backLegY);
+
+    // 2. Front Leg stepping onto stone riser
+    b.fillRect(1, -8 - frontLegY - bodyBob, 4, 8 + frontLegY);
+
+    // 3. Cloak behind back
+    b.fillStyle = '#000000';
+    b.beginPath();
+    b.moveTo(-6, -20 - bodyBob);
+    b.lineTo(-12, -13 - bodyBob);
+    b.lineTo(-6, -7 - bodyBob);
+    b.closePath();
+    b.fill();
+
+    // 4. White Tunic with bold contour
+    b.fillStyle = '#ffffff';
+    b.strokeStyle = '#000000';
+    b.lineWidth = 1.5;
+    b.beginPath();
+    b.roundRect(-5, -19 - bodyBob, 10, 12, [3, 3, 0, 0]);
+    b.fill();
+    b.stroke();
+
+    // Leather Belt
+    b.fillStyle = '#000000';
+    b.fillRect(-5, -10 - bodyBob, 10, 2);
+
+    // 5. Squire Hood
+    b.fillStyle = '#000000';
+    b.beginPath();
+    b.arc(0, -23 - bodyBob, 5.5, 0, Math.PI * 2);
+    b.fill();
+
+    b.beginPath();
+    b.moveTo(-4, -22 - bodyBob);
+    b.lineTo(-9, -20 - bodyBob);
+    b.lineTo(-4, -18 - bodyBob);
+    b.closePath();
+    b.fill();
+
+    // 6. Face Profile & Eye
+    b.fillStyle = '#ffffff';
+    b.beginPath();
+    b.arc(2, -23 - bodyBob, 3.5, -Math.PI * 0.45, Math.PI * 0.45);
+    b.lineTo(1, -19 - bodyBob);
+    b.closePath();
+    b.fill();
+
+    b.fillStyle = '#000000';
+    b.fillRect(3.5, -24 - bodyBob, 1.5, 1.5);
+
+    // 7. Arm Holding Wooden Torch
+    b.fillStyle = '#ffffff';
+    b.fillRect(2, -16 - bodyBob, 6, 4);
+    b.strokeStyle = '#000000';
+    b.lineWidth = 1;
+    b.strokeRect(2, -16 - bodyBob, 6, 4);
+
+    // Torch Stick
+    const torchX = 8;
+    const torchY = -15 - bodyBob;
+    b.fillStyle = '#000000';
+    b.fillRect(torchX, torchY - 8, 2.5, 12);
+
+    // 8. Burning Flame with dynamic flicker
+    const flameH = 8 + Math.sin(time * 25) * 3 + Math.random() * 2;
+    b.fillStyle = '#ffffff';
+    b.strokeStyle = '#000000';
+    b.lineWidth = 1;
+    b.beginPath();
+    b.moveTo(torchX - 2, torchY - 8);
+    b.lineTo(torchX + 1.25, torchY - 8 - flameH);
+    b.lineTo(torchX + 4.5, torchY - 8);
+    b.closePath();
+    b.fill();
+    b.stroke();
+
+    b.restore();
+  }
+
+  // Scales Offscreen Buffer onto Main Canvas
+  function presentCanvas() {
+    const stage = document.getElementById('game-stage');
+    const rect = stage.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+
+    if (canvas.width !== V_W || canvas.height !== V_H) {
+      canvas.width = V_W;
+      canvas.height = V_H;
+    }
+
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(offscreen, 0, 0);
+  }
+
+  // =========================================================================
+  // INPUT EVENT LISTENERS
+  // =========================================================================
+
+  // Keyboard Navigation
   window.addEventListener('keydown', (e) => {
     sound.init();
     if (!isGameStarted) {
-      if (e.key === ' ' || e.key === 'Enter') {
-        startGame();
-      }
+      if (e.key === ' ' || e.key === 'Enter') startGame();
       return;
     }
     if (isGameOver) {
-      if (e.key === ' ' || e.key === 'Enter') {
-        resetCheckpoint(false);
-      }
+      if (e.key === ' ' || e.key === 'Enter') resetCheckpoint(false);
       return;
     }
 
@@ -675,13 +1109,13 @@
       case 'W':
       case ' ':
         e.preventDefault();
-        ascend(1);
+        addStep(1);
         break;
       case 'ArrowDown':
       case 's':
       case 'S':
         e.preventDefault();
-        ascend(-1); // Step down / retreat from rolling barrels!
+        addStep(-1);
         break;
       case 'ArrowLeft':
       case 'a':
@@ -702,14 +1136,11 @@
   window.addEventListener('wheel', (e) => {
     sound.init();
     if (!isGameStarted || isGameOver) return;
-    if (e.deltaY < 0) {
-      ascend(1); // Scroll up climbs forward
-    } else if (e.deltaY > 0) {
-      ascend(-1); // Scroll down steps down / retreats
-    }
+    const delta = -e.deltaY * 0.015;
+    addStep(delta > 0 ? Math.ceil(delta) : Math.floor(delta));
   }, { passive: true });
 
-  // Touch Gestures: Swipe Up to Ascend, Swipe Down to Retreat, Swipe Left/Right to Dodge
+  // Touch Swipes & Gestures
   let touchStartY = 0;
   let touchStartX = 0;
 
@@ -728,21 +1159,18 @@
     const diffY = touchStartY - touchEndY;
     const diffX = touchEndX - touchStartX;
 
-    // Vertical Ascend / Retreat Swipe
     if (Math.abs(diffY) > 20 && Math.abs(diffY) > Math.abs(diffX)) {
-      if (diffY > 0) ascend(1);
-      else ascend(-1);
+      if (diffY > 0) addStep(1);
+      else addStep(-1);
       touchStartY = touchEndY;
-    }
-    // Horizontal Evade Swipes
-    else if (Math.abs(diffX) > 30) {
+    } else if (Math.abs(diffX) > 30) {
       if (diffX > 0) dodge(1);
       else dodge(-1);
       touchStartX = touchEndX;
     }
   }, { passive: true });
 
-  // Click/Tap on stage advances or dodges
+  // Direct Pointer / Tap on Stage: Left 30% dodges left, Right 30% dodges right, Center steps up
   gameStage.addEventListener('pointerdown', (e) => {
     sound.init();
     if (!isGameStarted || isGameOver) return;
@@ -753,7 +1181,7 @@
     } else if (relativeX > 0.72) {
       dodge(1);
     } else {
-      ascend(1);
+      addStep(1);
     }
   });
 
@@ -761,7 +1189,7 @@
   document.getElementById('btn-ascend-step').addEventListener('click', (e) => {
     e.stopPropagation();
     sound.init();
-    ascend(1);
+    addStep(1);
   });
   document.getElementById('btn-dodge-left').addEventListener('click', (e) => {
     e.stopPropagation();
@@ -800,17 +1228,18 @@
     scanlineOverlay.classList.toggle('hidden');
   });
 
-  // Register PWA Service Worker
+  // Register PWA Service Worker for Offline Play
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('./sw.js').catch(() => {});
     });
   }
 
-  // Initialize HUD on mount
+  // Start Animation Loop & Initialize
   updateHUD();
+  requestAnimationFrame(render);
 </script>
-<!-- END: Core Game Loop & Interaction Script -->
+<!-- END: 1-Bit Procedural Canvas Game Engine -->
 
 </body>
 </html>

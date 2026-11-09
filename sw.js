@@ -1,18 +1,10 @@
 // A Fool's Errand - Offline Service Worker (PWA)
-const CACHE_NAME = 'fools-errand-v2';
+const CACHE_NAME = 'fools-errand-v3';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
-  './css/style.css',
-  './assets/step_0.jpg',
-  './assets/step_1.jpg',
-  './assets/step_2.jpg',
-  './assets/step_3.jpg',
-  './assets/step_4.jpg',
-  './assets/step_barrel.jpg',
-  './assets/scene.png',
-  './assets/scene.jpg'
+  './css/style.css'
 ];
 
 self.addEventListener('install', (event) => {

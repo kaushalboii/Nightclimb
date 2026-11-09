@@ -5,7 +5,7 @@
   "main": "index.html",
   "scripts": {
     "start": "python3 -m http.server 8080",
-    "build": "mkdir -p www && cp index.html manifest.json sw.js www/ && cp -R css js assets www/",
+    "build": "mkdir -p www && cp index.html manifest.json sw.js www/ && cp -R css js www/",
     "cap:add:ios": "npm run build && npx cap add ios",
     "cap:add:android": "npm run build && npx cap add android",
     "cap:sync": "npm run build && npx cap sync",
