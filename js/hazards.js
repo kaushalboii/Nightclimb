@@ -1,18 +1,19 @@
 /**
  * A Fool's Errand - Hazard Manager
- * Handles rolling barrels and other traps
+ * Handles rolling barrels and other traps using step-based physics
  */
 
-import { CONFIG } from './config.js';
+import { CONFIG, getBarrelSpawnChance } from './config.js';
 import { audioEngine } from './audio.js';
 import { frameManager } from './frames.js';
 
 export class HazardManager {
   constructor() {
     this.active = false;
-    this.progress = 0;
-    this.lane = 0;
-    this.speed = CONFIG.BARREL.SPEED;
+    this.step = 0;           // Barrel's current step position
+    this.lane = 0;           // Barrel's lane (-1, 0, 1)
+    this.speed = 12.0;       // Steps per second
+    this.rotation = 0;       // Visual rotation
     this.animId = null;
     this.warningShown = false;
     this.collisionChecked = false;
@@ -55,26 +56,23 @@ export class HazardManager {
     return Math.random() < chance;
   }
 
-  // Trigger a new barrel hazard
-  trigger() {
+  // Trigger a new barrel hazard at player's current step + offset
+  trigger(playerStep) {
     if (this.active) return;
 
     this.active = true;
-    this.progress = 0;
+    this.step = playerStep + 16;  // Spawn ahead of player
+    this.lane = CONFIG.BARREL.LANE_CHOICES[Math.floor(Math.random() * CONFIG.BARREL.LANE_CHOICES.length)];
+    this.speed = 12.0 + Math.random() * 4.0;  // Variable speed
+    this.rotation = 0;
     this.warningShown = false;
     this.collisionChecked = false;
-
-    // Random lane
-    this.lane = CONFIG.BARREL.LANE_CHOICES[Math.floor(Math.random() * CONFIG.BARREL.LANE_CHOICES.length)];
 
     // Play warning sound
     audioEngine.playWarning();
 
     // Show warning banner
     this._showWarning();
-
-    // Show barrel frame
-    frameManager.showBarrelFrame();
 
     // Start animation after warning duration
     setTimeout(() => {
@@ -100,7 +98,7 @@ export class HazardManager {
     if (this.onWarningEnd) this.onWarningEnd();
   }
 
-  // Start the barrel rolling animation
+  // Start the barrel rolling animation (step-based)
   _startBarrelAnimation() {
     this._hideWarning();
 
@@ -110,46 +108,56 @@ export class HazardManager {
 
     frameManager.showBarrelActiveFrame();
 
-    const stageHeight = this.gameStage ? this.gameStage.clientHeight : 500;
-    const laneOffset = CONFIG.LANE_OFFSETS[this.lane] || 0;
-
-    const animate = () => {
+    const animate = (dt) => {
       if (!this.active) return;
 
-      this.progress += this.speed;
+      // Move barrel down steps per second
+      this.step -= this.speed * dt;
+      this.rotation += this.speed * dt * 1.5;
 
-      // Calculate barrel position
-      const currentY = this.progress * (stageHeight + 100) - 50;
-      const rotation = this.progress * 920; // Degrees
+      // Collision check near player elevation (within ~0.6 steps)
+      // This will be checked by the game loop using player position
 
-      if (this.barrelSprite) {
-        this.barrelSprite.style.transform = `translate(calc(-50% + ${laneOffset}px), ${currentY}px) rotate(${rotation}deg)`;
-      }
-
-      // Collision check window
-      if (!this.collisionChecked && this.progress >= CONFIG.BARREL.COLLISION_WINDOW_START && this.progress <= CONFIG.BARREL.COLLISION_WINDOW_END) {
-        this.collisionChecked = true;
-        if (this.onCollision) {
-          this.onCollision(this.lane);
-        }
-      }
-
-      // Barrel passed
-      if (this.progress >= 1.0) {
+      // Barrel rolled past player (10 steps below)
+      if (this.step < -10) {  // Will be compared to player step in game loop
         this._onBarrelPassed();
         return;
       }
 
-      this.animId = requestAnimationFrame(animate);
+      this.animId = requestAnimationFrame((time) => animate(time / 1000));
     };
 
-    this.animId = requestAnimationFrame(animate);
+    this.animId = requestAnimationFrame((time) => animate(time / 1000));
+  }
+
+  // Update barrel physics - called from game loop with player step
+  update(playerStep, dt) {
+    if (!this.active) return;
+
+    // Move barrel down
+    this.step -= this.speed * dt;
+    this.rotation += this.speed * dt * 1.5;
+
+    // Collision check window (when barrel is near player step)
+    const stepDiff = this.step - playerStep;
+    if (!this.collisionChecked && stepDiff >= -0.6 && stepDiff <= 0.6) {
+      this.collisionChecked = true;
+      if (this.onCollision) {
+        this.onCollision(this.lane, false); // false = check only, not hit yet
+      }
+    }
+
+    // Barrel passed player (well below)
+    if (this.step < playerStep - 10) {
+      this._onBarrelPassed();
+    }
   }
 
   // Handle barrel passing without collision
   _onBarrelPassed() {
     this.active = false;
-    this.progress = 0;
+    this.step = 0;
+    this.rotation = 0;
     this.collisionChecked = false;
 
     if (this.animId) {
@@ -173,9 +181,13 @@ export class HazardManager {
     if (this.onPassed) this.onPassed();
   }
 
-  // Handle collision with player
-  handleCollision(playerLane) {
+  // Handle collision with player - called when player dodges or gets hit
+  checkCollision(playerLane) {
     if (!this.active) return false;
+
+    const stepDiff = Math.abs(this.step - 0); // Player is at step 0 relative
+    // Actually, collision is checked when barrel reaches player's position
+    // The frame manager renders barrel at its step, player at step 0 (relative)
 
     const hit = playerLane === this.lane;
 
@@ -215,7 +227,8 @@ export class HazardManager {
   // Force stop any active barrel
   stop() {
     this.active = false;
-    this.progress = 0;
+    this.step = 0;
+    this.rotation = 0;
     this.collisionChecked = false;
 
     if (this.animId) {
@@ -244,22 +257,40 @@ export class HazardManager {
     return this.active ? this.lane : null;
   }
 
-  // Get barrel progress (0-1)
+  // Get barrel step position
+  getStep() {
+    return this.step;
+  }
+
+  // Get barrel rotation
+  getRotation() {
+    return this.rotation;
+  }
+
+  // Get barrel speed
+  getSpeed() {
+    return this.speed;
+  }
+
+  // Get all barrel data for rendering
+  _getBarrelData() {
+    return {
+      step: this.step,
+      lane: this.lane,
+      rotation: this.rotation,
+      speed: this.speed,
+      active: this.active
+    };
+  }
+
+  // Get barrel progress (0-1) - legacy
   getProgress() {
-    return this.progress;
+    return this.active ? 1.0 : 0;
   }
 
   isActive() {
     return this.active;
   }
-}
-
-// Helper function (also exported from config)
-function getBarrelSpawnChance(altitude) {
-  const stepsAboveMin = Math.max(0, altitude - CONFIG.BARREL.MIN_ALTITUDE_TO_SPAWN);
-  const hundreds = stepsAboveMin / 100;
-  const chance = CONFIG.BARREL.BASE_SPAWN_CHANCE + (hundreds * CONFIG.BARREL.CHANCE_INCREASE_PER_100_STEPS);
-  return Math.min(chance, CONFIG.BARREL.MAX_SPAWN_CHANCE);
 }
 
 // Singleton instance

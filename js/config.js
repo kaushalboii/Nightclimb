@@ -51,7 +51,7 @@ export const CONFIG = {
   LANE_OFFSETS: { '-1': -75, '0': 0, '1': 75 }, // Pixel offsets for barrel positioning
 
   // Player stats
-  STARTING_ALTITUDE: 1843,
+  STARTING_ALTITUDE: 0,
   STARTING_TORCHES: 3,
   MAX_TORCHES: 3,
   CHECKPOINT_INTERVAL: 300, // Steps between checkpoints

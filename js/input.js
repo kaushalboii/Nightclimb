@@ -8,6 +8,7 @@ import { audioEngine } from './audio.js';
 import { playerManager } from './player.js';
 import { hazardManager } from './hazards.js';
 import { frameManager } from './frames.js';
+import { hudManager } from './hud.js';
 
 export class InputManager {
   constructor() {

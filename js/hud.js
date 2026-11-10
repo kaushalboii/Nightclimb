@@ -44,12 +44,16 @@ export class HUDManager {
     this.sfxStatus = elements.sfxStatus;
     this.scanlineOverlay = elements.scanlineOverlay;
     this.crtToggleBtn = elements.crtToggleBtn;
+    this.flagSteps = elements.flagSteps;
   }
 
   // Update altitude display
   updateAltitude(altitude) {
     if (this.altitudeDisplay) {
       this.altitudeDisplay.innerHTML = `${altitude} <span class="text-[12px]">♠</span>`;
+    }
+    if (this.flagSteps) {
+      this.flagSteps.innerText = altitude.toString();
     }
   }
 

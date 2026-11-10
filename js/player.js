@@ -137,6 +137,7 @@ export class PlayerManager {
 
     audioEngine.ensureReady();
 
+    if (this.onGameStart) this.onGameStart();
     this._notifyAltitudeChange();
     this._notifyLaneChange();
   }

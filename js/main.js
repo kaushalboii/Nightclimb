@@ -22,13 +22,16 @@ const elements = {};
  * Initialize all DOM references
  */
 function cacheDOMElements() {
-  elements.stageImage = document.getElementById('stage-image');
-  elements.transitionOverlay = document.getElementById('frame-transition');
-  elements.visualContainer = document.getElementById('visual-frame-container');
+  // Canvas-based rendering elements
+  elements.gameCanvas = document.getElementById('game-canvas');
+  elements.gameStage = document.getElementById('game-stage');
+
+  // Hazard DOM elements (for warning banner)
   elements.hazardLayer = document.getElementById('hazard-layer');
   elements.barrelSprite = document.getElementById('barrel-sprite');
   elements.hazardAlert = document.getElementById('hazard-alert');
-  elements.gameStage = document.getElementById('game-stage');
+
+  // Input elements
   elements.crankContainer = document.getElementById('crank-container');
   elements.crankArm = document.getElementById('crank-arm');
   elements.btnAscend = document.getElementById('btn-ascend-step');
@@ -39,6 +42,8 @@ function cacheDOMElements() {
   elements.restartBtn = document.getElementById('restart-all-btn');
   elements.sfxToggleBtn = document.getElementById('sfx-toggle-btn');
   elements.crtToggleBtn = document.getElementById('crt-toggle-btn');
+
+  // HUD elements
   elements.sfxStatus = document.getElementById('sfx-status');
   elements.scanlineOverlay = document.getElementById('scanline-overlay');
   elements.altitudeDisplay = document.getElementById('altitude-display');
@@ -52,17 +57,18 @@ function cacheDOMElements() {
   elements.gameOverOverlay = document.getElementById('game-over-overlay');
   elements.gameOverReason = document.getElementById('game-over-reason');
   elements.dodgeTag = document.getElementById('dodge-tag');
+  elements.flagSteps = document.getElementById('flag-steps');
 }
 
 /**
  * Initialize all managers with DOM references
  */
 function initializeManagers() {
-  // Frame manager
+  // Frame manager (procedural canvas)
   frameManager.initDOM(
-    elements.stageImage,
-    elements.transitionOverlay,
-    elements.visualContainer
+    elements.gameCanvas,
+    null, // transitionOverlay - not used in canvas mode
+    null  // visualContainer - not used in canvas mode
   );
 
   // Hazard manager
@@ -88,7 +94,8 @@ function initializeManagers() {
     dodgeTag: elements.dodgeTag,
     sfxStatus: elements.sfxStatus,
     scanlineOverlay: elements.scanlineOverlay,
-    crtToggleBtn: elements.crtToggleBtn
+    crtToggleBtn: elements.crtToggleBtn,
+    flagSteps: elements.flagSteps
   });
 
   // Input manager
@@ -119,25 +126,20 @@ function initializeManagers() {
 function setupCallbacks() {
   // Player -> Hazard: Check for barrel spawn on altitude change
   playerManager.onAltitudeChange = (altitude) => {
-    if (hazardManager.shouldSpawn(altitude)) {
-      hazardManager.trigger();
-    }
-  };
-
-  // Player -> HUD: Update all HUD elements
-  playerManager.onAltitudeChange = (altitude) => {
     hudManager.updateAltitude(altitude);
     hudManager.updateStory(altitude);
     hudManager.updateRank(altitude);
 
     // Check barrel spawn
     if (hazardManager.shouldSpawn(altitude)) {
-      hazardManager.trigger();
+      hazardManager.trigger(altitude);
     }
   };
 
   playerManager.onLaneChange = (lane, laneName) => {
     hudManager.updateLane(lane, laneName);
+    // Also tell frame manager to shift lane
+    frameManager.applyLaneShift(lane);
   };
 
   playerManager.onTorchChange = (current, max) => {
@@ -146,7 +148,6 @@ function setupCallbacks() {
 
   playerManager.onCheckpointReached = (checkpoint) => {
     console.log(`Checkpoint reached: ${checkpoint}`);
-    // Could show a visual notification here
   };
 
   playerManager.onGameStart = () => {
@@ -154,7 +155,6 @@ function setupCallbacks() {
     hudManager.hideGameOver();
     hazardManager.reset();
     frameManager.reset();
-    frameManager.setFrame(CONFIG.FRAME_INDICES.DEFAULT, false);
   };
 
   playerManager.onGameOver = (reason) => {
@@ -172,7 +172,6 @@ function setupCallbacks() {
     onCollision: (barrelLane, hit) => {
       if (hit) {
         playerManager.loseTorch();
-        // Show hit feedback
         if (elements.hazardAlert) {
           elements.hazardAlert.innerText = `⚠ STRUCK! LOST A TORCH (${playerManager.getTorches()} REMAINING)`;
           elements.hazardAlert.classList.remove('hidden');
@@ -180,8 +179,6 @@ function setupCallbacks() {
             elements.hazardAlert.classList.add('hidden');
           }, 1200);
         }
-      } else {
-        // Successful dodge - already handled by input manager
       }
     },
     onPassed: () => {
@@ -195,37 +192,30 @@ function setupCallbacks() {
     }
   });
 
-  // Input -> Game actions (already bound in input manager, but we can add extras)
+  // Input -> Game actions
   inputManager.onAscend = (delta) => {
-    // Frame advance on step
-    frameManager.advanceFrameIfNeeded(playerManager.getTargetAltitude());
-    // Vertical bob
-    frameManager.applyVerticalBob(playerManager.getTargetAltitude(), playerManager.isMoving());
+    // Frame manager handles rendering continuously
   };
 
   inputManager.onDodge = (direction) => {
-    // Lane shift visual handled in input manager
+    const lane = playerManager.getLane();
+    frameManager.applyLaneShift(lane);
+    hudManager.showDodgeFeedback(lane);
   };
 
-  inputManager.onStartGame = () => {
-    // Game started
-  };
-
+  inputManager.onStartGame = () => {};
   inputManager.onResume = () => {
     hazardManager.reset();
-    frameManager.setFrame(CONFIG.FRAME_INDICES.DEFAULT, true);
+    hudManager.hideGameOver();
   };
-
   inputManager.onRestart = () => {
     hazardManager.reset();
     frameManager.reset();
-    frameManager.setFrame(CONFIG.FRAME_INDICES.DEFAULT, false);
+    hudManager.hideGameOver();
   };
-
   inputManager.onToggleSFX = (enabled) => {
     hudManager.updateSFXStatus(enabled);
   };
-
   inputManager.onToggleCRT = (enabled) => {
     hudManager.toggleCRT(enabled);
   };
@@ -238,12 +228,27 @@ function gameLoop(currentTime) {
   const dt = Math.min((currentTime - lastTime) / 1000, 0.1); // Cap at 100ms
   lastTime = currentTime;
 
-  // Update systems
+  // Update input and player
   inputManager.update(dt);
   playerManager.update(dt);
 
-  // Update HUD (non-critical updates)
+  // Update hazard with player step for collision detection
   if (playerManager.isGameStarted && !playerManager.isGameOver) {
+    hazardManager.update(playerManager.getAltitude(), dt);
+
+    // Check for collision if barrel is near player
+    if (hazardManager.isActive()) {
+      const barrelData = hazardManager._getBarrelData();
+      const stepDiff = Math.abs(barrelData.step - playerManager.getAltitude());
+      if (stepDiff < 0.6 && !hazardManager._collisionResolved) {
+        hazardManager._collisionResolved = true;
+        hazardManager.checkCollision(playerManager.getLane());
+      } else if (stepDiff >= 0.6) {
+        hazardManager._collisionResolved = false;
+      }
+    }
+
+    // Update HUD
     hudManager.updateAll(
       playerManager.getAltitude(),
       playerManager.getLane(),
@@ -254,6 +259,11 @@ function gameLoop(currentTime) {
       playerManager.isGameStarted,
       playerManager.isGameOver
     );
+
+    // Sync frame manager with player and hazard state
+    frameManager.updateRenderState(playerManager);
+    frameManager.updateBarrelState(hazardManager);
+    frameManager.render(currentTime);
   }
 
   // Continue loop
@@ -264,9 +274,7 @@ function gameLoop(currentTime) {
  * Handle window resize
  */
 function handleResize() {
-  // Frame manager handles canvas scaling in presentToScreen
-  // But we may need to update UI overlay positions
-  frameManager.applyVerticalBob(playerManager.getTargetAltitude(), playerManager.isMoving());
+  frameManager.render(performance.now());
 }
 
 /**
@@ -284,16 +292,15 @@ async function init() {
   // Show title screen
   hudManager.showTitle();
 
-  // Initial HUD state
-  hudManager.updateAltitude(playerManager.getAltitude());
+  // Initial HUD state (starts at step 0)
+  hudManager.updateAltitude(0);
   hudManager.updateLane(playerManager.getLane(), playerManager.getLaneName());
-  hudManager.updateStory(playerManager.getAltitude());
+  hudManager.updateStory(0);
   hudManager.updateTorches(playerManager.getTorches(), playerManager.getMaxTorches());
-  hudManager.updateRank(playerManager.getAltitude());
+  hudManager.updateRank(0);
   hudManager.updateSFXStatus(playerManager.getSettings().sfxEnabled);
   hudManager.toggleCRT(playerManager.getSettings().crtEnabled);
 
-  // Set up resize handler
   window.addEventListener('resize', handleResize);
 
   // Start game loop
