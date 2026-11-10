@@ -58,3 +58,4 @@ To match *A Fool's Errand*'s signature Apple Watch mode:
 - Add a watchOS target in the Xcode project.
 - Use `WKInterfaceCrownSequencer` to bind crown rotation directly to `altitude` and send micro-haptic taps with `WKInterfaceDevice.current().play(.click)`.
 
+ 
