@@ -27,10 +27,18 @@ Modern take on the arcade classic with:
 
 ## 🚀 Quick Start
 
+### Option 1: Pip Install (Recommended)
 ```bash
-# Clone and run
+pip install git+https://github.com/kaushalboii/Nightclimb.git
+nightclimb          # Runs launcher to pick a game
+bounce              # Runs BOUNCE directly
+snake               # Runs SNAKE directly
+```
+
+### Option 2: Clone & Run Locally
+```bash
 git clone https://github.com/kaushalboii/Nightclimb.git
-cd Nightclimb/bounce_game
+cd Nightclimb/nightclimb
 python3 run.py
 ```
 
@@ -42,7 +50,7 @@ python3 run.py
 **Windows:** Install `windows-curses` first:
 ```bash
 pip install windows-curses
-python run.py
+nightclimb
 ```
 
 ---
@@ -134,11 +142,11 @@ rm ~/.bounce_save.json ~/.snake_save.json
 Run tests for each game:
 ```bash
 # BOUNCE tests
-cd bounce_game
+cd nightclimb
 python3 test_game.py
 
 # SNAKE tests
-cd games/snake
+cd nightclimb/games/snake
 python3 test_snake.py
 ```
 
@@ -150,13 +158,13 @@ Expected output: `ALL TESTS PASSED ✓`
 
 ```
 Nightclimb/
-├── bounce_game/              # Main package
-│   ├── run.py                # Entry point — run this to play
-│   ├── launcher.py           # Game selector menu
-│   ├── README.md             # This file
-│   ├── test_game.py          # BOUNCE unit tests
+├── nightclimb/                 # Main package
+│   ├── run.py                  # Entry point — run this to play
+│   ├── launcher.py             # Game selector menu
+│   ├── README.md               # This file
+│   ├── test_game.py            # BOUNCE unit tests
 │   ├── games/
-│   │   ├── bounce/           # BOUNCE game
+│   │   ├── bounce/             # BOUNCE game
 │   │   │   ├── main.py
 │   │   │   ├── game/
 │   │   │   │   ├── state.py
@@ -167,7 +175,7 @@ Nightclimb/
 │   │   │   └── ui/
 │   │   │       ├── render.py
 │   │   │       └── input.py
-│   │   └── snake/            # SNAKE game
+│   │   └── snake/              # SNAKE game
 │   │       ├── main.py
 │   │       ├── game/
 │   │       │   └── state.py
@@ -177,8 +185,11 @@ Nightclimb/
 │   │       └── ui/
 │   │           ├── render.py
 │   │           └── input.py
+├── web/                        # Web version (WIP)
+│   └── index.html
+├── pyproject.toml              # Package config
 ├── .gitignore
-└── README.md                 # Root readme (minimal)
+└── README.md                   # Root readme (minimal)
 ```
 
 ---

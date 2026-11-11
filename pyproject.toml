@@ -34,9 +34,9 @@ windows = ["windows-curses>=2.4"]
 dev = ["pytest>=7.0", "black>=23.0", "ruff>=0.1"]
 
 [project.scripts]
-nightclimb = "bounce_game.launcher:cli_main"
-bounce = "games.bounce.main:main"
-snake = "games.snake.main:main"
+nightclimb = "nightclimb.launcher:cli_main"
+bounce = "nightclimb.games.bounce.main:main"
+snake = "nightclimb.games.snake.main:main"
 
 [project.urls]
 Homepage = "https://github.com/kaushalboii/Nightclimb"
@@ -45,7 +45,7 @@ Issues = "https://github.com/kaushalboii/Nightclimb/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["bounce_game*", "games*"]
+include = ["nightclimb*", "games*"]
 
 [tool.setuptools.package-dir]
 "" = "."
