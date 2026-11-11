@@ -138,3 +138,7 @@ if __name__ == '__main__':
     except ImportError as e:
         print(f"Game not found: {e}")
         print("Make sure games/bounce/ and games/snake/ exist")
+    except Exception as e:
+        import traceback
+        print(f"Fatal error: {e}")
+        traceback.print_exc()

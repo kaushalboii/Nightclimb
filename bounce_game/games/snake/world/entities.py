@@ -202,12 +202,12 @@ class Food:
     FOOD_TYPES = {
         'normal': {'value': 10, 'color': 3, 'char': '●', 'grow': 1},
         'bonus': {'value': 50, 'color': 7, 'char': '◆', 'grow': 2},
-        'poison': {'value': -20, 'color': 4, 'char': '☠', 'grow': 0},
-        'speed': {'value': 15, 'color': 5, 'char': '⚡', 'grow': 1, 'powerup': 'speed'},
-        'shrink': {'value': 25, 'color': 11, 'char': '◈', 'grow': 0, 'powerup': 'shrink'},
-        'ghost': {'value': 30, 'color': 6, 'char': '👻', 'grow': 1, 'powerup': 'ghost'},
-        'multiplier': {'value': 20, 'color': 5, 'char': '✦', 'grow': 1, 'powerup': 'multiplier'},
-        'shield': {'value': 15, 'color': 6, 'char': '🛡', 'grow': 1, 'powerup': 'shield'},
+        'poison': {'value': -20, 'color': 4, 'char': 'X', 'grow': 0},
+        'speed': {'value': 15, 'color': 5, 'char': '+', 'grow': 1, 'powerup': 'speed'},
+        'shrink': {'value': 25, 'color': 11, 'char': '<>', 'grow': 0, 'powerup': 'shrink'},
+        'ghost': {'value': 30, 'color': 6, 'char': 'G', 'grow': 1, 'powerup': 'ghost'},
+        'multiplier': {'value': 20, 'color': 5, 'char': '2X', 'grow': 1, 'powerup': 'multiplier'},
+        'shield': {'value': 15, 'color': 6, 'char': 'S', 'grow': 1, 'powerup': 'shield'},
     }
 
     def __init__(self, x: int, y: int, ftype: str = 'normal'):
@@ -272,11 +272,11 @@ class PowerUp:
     collected: bool = False
 
     TYPES = {
-        'shield': {'char': '🛡', 'color': 6, 'name': 'Shield', 'duration': 10},
-        'speed': {'char': '⚡', 'color': 3, 'name': 'Speed', 'duration': 8},
-        'slow': {'char': '🐌', 'color': 2, 'name': 'Slow', 'duration': 8},
-        'ghost': {'char': '👻', 'color': 6, 'name': 'Ghost', 'duration': 6},
-        'multiplier': {'char': '✦', 'color': 5, 'name': '2x Score', 'duration': 10},
+        'shield': {'char': 'S', 'color': 6, 'name': 'Shield', 'duration': 10},
+        'speed': {'char': '+', 'color': 3, 'name': 'Speed', 'duration': 8},
+        'slow': {'char': '!', 'color': 2, 'name': 'Slow', 'duration': 8},
+        'ghost': {'char': 'G', 'color': 6, 'name': 'Ghost', 'duration': 6},
+        'multiplier': {'char': '2X', 'color': 5, 'name': '2x Score', 'duration': 10},
     }
 
     def __init__(self, x: int, y: int, ptype: str):

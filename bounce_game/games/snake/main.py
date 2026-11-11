@@ -7,6 +7,7 @@ Smooth movement, power-ups, obstacles, high scores, multiple modes.
 import curses
 import time
 import random
+import traceback
 from pathlib import Path
 
 from world.entities import Snake, Food, Obstacle, PowerUp, Particle
@@ -19,6 +20,20 @@ SAVE_FILE = Path.home() / ".snake_save.json"
 
 
 def main(stdscr):
+    try:
+        _main_loop(stdscr)
+    except Exception as e:
+        # Show error on screen before exiting
+        stdscr.nodelay(False)
+        stdscr.erase()
+        stdscr.addstr(0, 0, f"ERROR: {e}")
+        stdscr.addstr(1, 0, traceback.format_exc())
+        stdscr.addstr(20, 0, "Press any key to exit...")
+        stdscr.refresh()
+        stdscr.getch()
+
+
+def _main_loop(stdscr):
     # Initialize curses
     curses.curs_set(0)
     stdscr.nodelay(True)
