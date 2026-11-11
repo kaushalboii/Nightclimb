@@ -1,0 +1,45 @@
+Metadata-Version: 2.4
+Name: nightclimb
+Version: 2.0.0
+Summary: Terminal arcade collection: BOUNCE (Nokia classic) + SNAKE (enhanced retro)
+Author-email: kaushalboii <kaushal@example.com>
+License: MIT
+Project-URL: Homepage, https://github.com/kaushalboii/Nightclimb
+Project-URL: Repository, https://github.com/kaushalboii/Nightclimb
+Project-URL: Issues, https://github.com/kaushalboii/Nightclimb/issues
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Environment :: Console :: Curses
+Classifier: Topic :: Games/Entertainment :: Arcade
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Operating System :: MacOS
+Classifier: Operating System :: Microsoft :: Windows
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+Provides-Extra: windows
+Requires-Dist: windows-curses>=2.4; extra == "windows"
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"
+Requires-Dist: black>=23.0; extra == "dev"
+Requires-Dist: ruff>=0.1; extra == "dev"
+
+# Nightclimb Arcade
+
+Terminal arcade collection — **BOUNCE** (Nokia classic) + **SNAKE** (enhanced retro).
+
+```bash
+git clone https://github.com/kaushalboii/Nightclimb.git
+cd Nightclimb/bounce_game
+python3 run.py
+```
+
+**Requirements:** Python 3.7+, curses terminal (Linux/macOS/WSL/Terminal.app), 80×24 minimum.
+**Windows:** `pip install windows-curses`
+
+See `bounce_game/README.md` for full documentation.

@@ -1,0 +1,4 @@
+[console_scripts]
+bounce = games.bounce.main:main
+nightclimb = bounce_game.launcher:cli_main
+snake = games.snake.main:main

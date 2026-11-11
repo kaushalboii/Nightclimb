@@ -124,7 +124,8 @@ def main(stdscr):
             return None
 
 
-if __name__ == '__main__':
+def cli_main():
+    """Entry point for pip-installed command."""
     try:
         game_id = curses.wrapper(main)
         if game_id == 'bounce':
@@ -142,3 +143,7 @@ if __name__ == '__main__':
         import traceback
         print(f"Fatal error: {e}")
         traceback.print_exc()
+
+
+if __name__ == '__main__':
+    cli_main()
