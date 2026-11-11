@@ -2,8 +2,6 @@
 
 A faithful recreation of the classic Nokia **Bounce** game (from the Nokia 3310/5110 era) built in pure Python with `curses`. Features all 12 original levels, authentic physics, auto-save, and zero external dependencies.
 
-![Game Preview](assets/preview.gif)
-
 ---
 
 ## 🎮 Play Now
