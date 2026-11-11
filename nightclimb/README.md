@@ -1,6 +1,6 @@
 # Nightclimb Arcade
 
-A terminal arcade collection featuring two classic games recreated in pure Python with `curses`.
+A terminal arcade collection featuring **6 classic games** recreated in pure Python with `curses`.
 
 ---
 
@@ -12,59 +12,39 @@ python3 -m pip install git+https://github.com/kaushalboii/Nightclimb.git && expo
 
 ---
 
-## Alternative Ways to Run
+## 🎮 Games (6 Total)
 
-### After install (permanent PATH):
-```bash
-echo 'export PATH="/Users/kaushal/Library/Python/3.9/bin:$PATH"' >> ~/.zshrc
-source ~/.zshrc
-nightclimb    # Launcher
-bounce        # BOUNCE
-snake         # SNAKE
-```
-
-### Without PATH:
-```bash
-python3 -m nightclimb.launcher
-python3 -m nightclimb.games.bounce.main
-python3 -m nightclimb.games.snake.main
-```
-
-### Clone & run locally:
-```bash
-git clone https://github.com/kaushalboii/Nightclimb.git
-cd Nightclimb/nightclimb
-python3 run.py
-```
+| Game | Description | Save File |
+|------|-------------|-----------|
+| **BOUNCE** | Nokia classic physics platformer, 12 levels | `~/.bounce_save.json` |
+| **SNAKE** | 5 modes, power-ups, obstacles | `~/.snake_save.json` |
+| **TETRIS** | SRS rotation, 7-bag, ghost piece, hold | `~/.tetris_save.json` |
+| **BREAKOUT** | 20 levels, 6 power-ups, paddle physics | `~/.breakout_save.json` |
+| **SPACE INVADERS** | 5×11 grid, shields, UFO, progressive speed | `~/.invaders_save.json` |
+| **PAC-MAN** | Original maze, 4 unique ghost AIs, fruit | `~/.pacman_save.json` |
 
 ---
 
-## 🎮 Games
+## 🕹️ Controls Summary
 
-### BOUNCE — Nokia Classic
-- 12 Levels, authentic physics, spikes, moving platforms, water, breakable blocks
-- Power-ups: Shield, Double Jump, Speed
-- Auto-save to `~/.bounce_save.json`
+**Launcher:** `↑/↓` Navigate • `Enter/Space` Select • `Q/Esc` Quit
 
-### SNAKE — Enhanced Retro
-- 5 Modes: Classic, Arcade, Survival, Time Attack, Cozy
-- Power-ups: Shield, Speed, Ghost, 2x Score, Slow, Shrink
-- High scores per mode in `~/.snake_save.json`
+**BOUNCE:** `←/→` Move • `↑/Space` Jump • `P` Pause • `R` Restart • `M` Menu
 
----
+**SNAKE:** `←/→/↑/↓` Turn • `P` Pause • `R` Restart • `M` Menu
 
-## 🕹️ Controls
+**TETRIS:** `←/→` Move • `↓` Soft Drop • `↑/X` Rotate CW • `Z` Rotate CCW • `Space` Hard Drop • `C/V` Hold
 
-| Game | Keys |
-|------|------|
-| **Launcher** | `↑/↓` Navigate • `Enter/Space` Select • `Q/Esc` Quit |
-| **BOUNCE** | `←/→` Move • `↑/Space` Jump • `P` Pause • `R` Restart • `M` Menu |
-| **SNAKE** | `←/→/↑/↓` Turn • `P` Pause • `R` Restart • `M` Menu |
+**BREAKOUT:** `←/→` Move Paddle • `Space/↑` Launch • `P` Pause
+
+**INVADERS:** `←/→` Move • `Space/↑/Enter` Fire • `P` Pause
+
+**PAC-MAN:** `←/→/↑/↓` Turn • `P` Pause
 
 ---
 
 ## 💾 Saves
-Auto-saves every 10s + on quit. Reset: `rm ~/.bounce_save.json ~/.snake_save.json`
+Auto-saves on quit. Reset: `rm ~/.bounce_save.json ~/.snake_save.json ~/.tetris_save.json ~/.breakout_save.json ~/.invaders_save.json ~/.pacman_save.json`
 
 ---
 
