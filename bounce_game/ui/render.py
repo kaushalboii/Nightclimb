@@ -300,13 +300,19 @@ class Renderer:
                     ch = ' '
                 self.stdscr.addch(self.offset_y + y + dy, self.offset_x + x + dx, ch, color)
 
-    def safe_put(self, y, x, char, color_pair, shake_x=0, shake_y=0):
-        """Safely put character at position with bounds checking."""
+    def safe_put(self, y, x, text, color_pair, shake_x=0, shake_y=0):
+        """Safely put character or string at position with bounds checking."""
         sy = self.offset_y + y + shake_y
         sx = self.offset_x + x + shake_x
         if 0 <= sy < self.height and 0 <= sx < self.width - 1:
             try:
-                self.stdscr.addch(sy, sx, char, curses.color_pair(color_pair) | curses.A_BOLD)
+                if len(text) == 1:
+                    self.stdscr.addch(sy, sx, text, curses.color_pair(color_pair) | curses.A_BOLD)
+                else:
+                    # For strings, use addstr but clip to screen width
+                    max_len = self.width - sx - 1
+                    clipped = text[:max_len]
+                    self.stdscr.addstr(sy, sx, clipped, curses.color_pair(color_pair) | curses.A_BOLD)
             except curses.error:
                 pass
 
