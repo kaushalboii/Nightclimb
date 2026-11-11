@@ -10,10 +10,10 @@ import random
 import traceback
 from pathlib import Path
 
-from world.entities import Snake, Food, Obstacle, PowerUp, Particle
-from ui.render import Renderer
-from ui.input import InputHandler
-from game.state import GameState
+from .world.entities import Snake, Food, Obstacle, PowerUp, Particle
+from .ui.render import Renderer
+from .ui.input import InputHandler
+from .game.state import GameState
 
 
 SAVE_FILE = Path.home() / ".snake_save.json"

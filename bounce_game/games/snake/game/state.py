@@ -8,8 +8,8 @@ from pathlib import Path
 from dataclasses import dataclass, field
 from typing import List, Optional
 
-from world.entities import Snake, Food, Obstacle, PowerUp, Particle
-from world.levels import MODES
+from ..world.entities import Snake, Food, Obstacle, PowerUp, Particle
+from ..world.levels import MODES
 
 
 SAVE_FILE = Path.home() / ".snake_save.json"
@@ -177,7 +177,7 @@ class GameState:
         # Handle shield block event
         if event == 'shield_blocked':
             self.trigger_shake(1, 0.15)
-            from world.entities import create_death_particles
+            from ..world.entities import create_death_particles
             hx, hy = self.snake.head
             self.particles.extend(create_death_particles(hx, hy))
 
@@ -230,7 +230,7 @@ class GameState:
             self.snake.apply_powerup(food.powerup)
 
         # Particles
-        from world.entities import create_eat_particles
+        from ..world.entities import create_eat_particles
         self.particles.extend(create_eat_particles(food.x, food.y, food.ftype))
 
         # Screen shake for special food
@@ -249,7 +249,7 @@ class GameState:
         self.powerups.remove(pup)
         self.snake.apply_powerup(pup.ptype, pup.duration)
 
-        from world.entities import create_eat_particles
+        from ..world.entities import create_eat_particles
         self.particles.extend(create_eat_particles(pup.x, pup.y, 'bonus'))
         self.trigger_shake(1, 0.15)
 
@@ -268,7 +268,7 @@ class GameState:
             self.spawn_obstacles(2)
 
         # Level up particles
-        from world.entities import create_levelup_particles
+        from ..world.entities import create_levelup_particles
         cx, cy = self.grid_width // 2, self.grid_height // 2
         self.particles.extend(create_levelup_particles(cx, cy))
         self.trigger_shake(2, 0.3)
@@ -278,7 +278,7 @@ class GameState:
         self.game_over = True
         self.trigger_shake(3, 0.5)
 
-        from world.entities import create_death_particles
+        from ..world.entities import create_death_particles
         hx, hy = self.snake.head
         self.particles.extend(create_death_particles(hx, hy))
 

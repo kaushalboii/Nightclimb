@@ -4,7 +4,7 @@
 import curses
 import math
 import time
-from world.entities import Ball, Platform, Spike, Star, Exit, Block, MovingPlatform, Particle, PowerUp
+from ..world.entities import Ball, Platform, Spike, Star, Exit, Block, MovingPlatform, Particle, PowerUp
 
 
 class Renderer:
@@ -464,4 +464,4 @@ class Renderer:
 
 # Import here to avoid circular import
 import time
-from world.levels import LEVEL_NAMES
+from ..world.levels import LEVEL_NAMES

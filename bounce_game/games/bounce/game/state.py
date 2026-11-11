@@ -7,8 +7,8 @@ from pathlib import Path
 from dataclasses import dataclass, field, asdict
 from typing import Optional
 
-from world.levels import LEVELS
-from world.entities import Ball, Platform, Spike, Star, Exit, Block, MovingPlatform, Particle, PowerUp
+from ..world.levels import LEVELS
+from ..world.entities import Ball, Platform, Spike, Star, Exit, Block, MovingPlatform, Particle, PowerUp
 
 
 SAVE_FILE = Path.home() / ".bounce_save.json"

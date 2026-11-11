@@ -8,10 +8,10 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from world.levels import LEVELS, LEVEL_NAMES
-from world.entities import Ball, Platform, Spike, Star, Exit, Block, MovingPlatform
-from game.state import GameState
-from game.physics import PhysicsEngine
+from games.bounce.world.levels import LEVELS, LEVEL_NAMES
+from games.bounce.world.entities import Ball, Platform, Spike, Star, Exit, Block, MovingPlatform
+from games.bounce.game.state import GameState
+from games.bounce.game.physics import PhysicsEngine
 
 
 def test_levels():

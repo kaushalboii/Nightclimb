@@ -3,11 +3,11 @@
 
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from world.entities import Snake, Food, Obstacle, PowerUp, Particle
-from game.state import GameState
-from world.levels import MODES
+from games.snake.world.entities import Snake, Food, Obstacle, PowerUp, Particle
+from games.snake.game.state import GameState
+from games.snake.world.levels import MODES
 
 
 def test_snake_movement():
@@ -224,7 +224,7 @@ def test_modes():
 
 def test_particles():
     print("\nTesting particles...")
-    from world.entities import create_particles, create_eat_particles, create_death_particles
+    from games.snake.world.entities import create_particles, create_eat_particles, create_death_particles
 
     particles = create_particles(10, 10, 5, color=3, char='·')
     assert len(particles) == 5

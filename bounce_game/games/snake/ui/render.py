@@ -3,7 +3,7 @@
 
 import curses
 import time
-from world.entities import Snake, Food, Obstacle, PowerUp, Particle
+from ..world.entities import Snake, Food, Obstacle, PowerUp, Particle
 
 
 class Renderer:
@@ -376,4 +376,4 @@ class Renderer:
 
 
 # Import at bottom to avoid circular
-from world.levels import MODES
+from ..world.levels import MODES

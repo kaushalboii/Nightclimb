@@ -7,7 +7,7 @@ Enhanced with:
 - Better collision resolution
 """
 
-from world.entities import Ball, Platform, Spike, Star, Exit, Block, MovingPlatform
+from ..world.entities import Ball, Platform, Spike, Star, Exit, Block, MovingPlatform
 
 
 # Physics constants (tuned to match original Nokia Bounce)

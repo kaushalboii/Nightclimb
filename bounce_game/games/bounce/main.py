@@ -10,12 +10,12 @@ import random
 import traceback
 from pathlib import Path
 
-from world.levels import LEVELS, LEVEL_NAMES
-from world.entities import Ball, Platform, Spike, Star, Exit, Block, MovingPlatform, Particle
-from ui.render import Renderer
-from ui.input import InputHandler
-from game.state import GameState
-from game.physics import PhysicsEngine
+from .world.levels import LEVELS, LEVEL_NAMES
+from .world.entities import Ball, Platform, Spike, Star, Exit, Block, MovingPlatform, Particle
+from .ui.render import Renderer
+from .ui.input import InputHandler
+from .game.state import GameState
+from .game.physics import PhysicsEngine
 
 
 SAVE_FILE = Path.home() / ".bounce_save.json"
