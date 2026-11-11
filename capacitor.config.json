@@ -1,9 +1,0 @@
-{
-  "appId": "com.nightclimb.game",
-  "appName": "Nightclimb",
-  "webDir": "www",
-  "server": {
-    "androidScheme": "https"
-  }
-}
-

@@ -1,23 +1,26 @@
-# Dependencies
-node_modules/
-.npm/
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.venv/
+venv/
+env/
 
 # OS files
 .DS_Store
 Thumbs.db
 
-# Build artifacts
-/www/
-*.log
+# Game save file (local user data)
+.bounce_save.json
 
-# Media / Raw recordings
-*.mov
-*.mp4
-
-# Native build intermediates (ios & android keep their own source code)
-ios/App/Pods/
-ios/App/App/public/
-android/.gradle/
-android/build/
-android/app/build/
-android/local.properties
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
