@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+.npm/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+/www/
+*.log
+
+# Media / Raw recordings
+*.mov
+*.mp4
+
+# Native build intermediates (ios & android keep their own source code)
+ios/App/Pods/
+ios/App/App/public/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties

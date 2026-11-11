@@ -1,0 +1,329 @@
+/**
+ * A Fool's Errand - Main Entry Point
+ * Initializes all systems and runs the game loop
+ */
+
+import { CONFIG } from './config.js';
+import { audioEngine } from './audio.js';
+import { frameManager } from './frames.js';
+import { hazardManager } from './hazards.js';
+import { playerManager } from './player.js';
+import { hudManager } from './hud.js';
+import { inputManager } from './input.js';
+
+// Game state
+let lastTime = performance.now();
+let animationId = null;
+
+// DOM Elements cache
+const elements = {};
+
+/**
+ * Initialize all DOM references
+ */
+function cacheDOMElements() {
+  // Canvas-based rendering elements
+  elements.gameCanvas = document.getElementById('game-canvas');
+  elements.gameStage = document.getElementById('game-stage');
+
+  // Hazard DOM elements (for warning banner)
+  elements.hazardLayer = document.getElementById('hazard-layer');
+  elements.barrelSprite = document.getElementById('barrel-sprite');
+  elements.hazardAlert = document.getElementById('hazard-alert');
+
+  // Input elements
+  elements.crankContainer = document.getElementById('crank-container');
+  elements.crankArm = document.getElementById('crank-arm');
+  elements.btnAscend = document.getElementById('btn-ascend-step');
+  elements.btnDodgeLeft = document.getElementById('btn-dodge-left');
+  elements.btnDodgeRight = document.getElementById('btn-dodge-right');
+  elements.startBtn = document.getElementById('start-game-btn');
+  elements.retryBtn = document.getElementById('retry-btn');
+  elements.restartBtn = document.getElementById('restart-all-btn');
+  elements.sfxToggleBtn = document.getElementById('sfx-toggle-btn');
+  elements.crtToggleBtn = document.getElementById('crt-toggle-btn');
+
+  // HUD elements
+  elements.sfxStatus = document.getElementById('sfx-status');
+  elements.scanlineOverlay = document.getElementById('scanline-overlay');
+  elements.altitudeDisplay = document.getElementById('altitude-display');
+  elements.laneIndicator = document.getElementById('lane-indicator');
+  elements.actIndicator = document.getElementById('act-indicator');
+  elements.poemText = document.getElementById('poem-text');
+  elements.torchesCount = document.getElementById('torches-count');
+  elements.speedMeter = document.getElementById('speed-meter');
+  elements.rankTitle = document.getElementById('rank-title');
+  elements.titleOverlay = document.getElementById('title-overlay');
+  elements.gameOverOverlay = document.getElementById('game-over-overlay');
+  elements.gameOverReason = document.getElementById('game-over-reason');
+  elements.dodgeTag = document.getElementById('dodge-tag');
+  elements.flagSteps = document.getElementById('flag-steps');
+}
+
+/**
+ * Initialize all managers with DOM references
+ */
+function initializeManagers() {
+  // Frame manager (procedural canvas)
+  frameManager.initDOM(
+    elements.gameCanvas,
+    null, // transitionOverlay - not used in canvas mode
+    null  // visualContainer - not used in canvas mode
+  );
+
+  // Hazard manager
+  hazardManager.initDOM(
+    elements.hazardLayer,
+    elements.barrelSprite,
+    elements.hazardAlert,
+    elements.gameStage
+  );
+
+  // HUD manager
+  hudManager.initDOM({
+    altitudeDisplay: elements.altitudeDisplay,
+    laneIndicator: elements.laneIndicator,
+    actIndicator: elements.actIndicator,
+    poemText: elements.poemText,
+    torchesCount: elements.torchesCount,
+    speedMeter: elements.speedMeter,
+    rankTitle: elements.rankTitle,
+    titleOverlay: elements.titleOverlay,
+    gameOverOverlay: elements.gameOverOverlay,
+    gameOverReason: elements.gameOverReason,
+    dodgeTag: elements.dodgeTag,
+    sfxStatus: elements.sfxStatus,
+    scanlineOverlay: elements.scanlineOverlay,
+    crtToggleBtn: elements.crtToggleBtn,
+    flagSteps: elements.flagSteps
+  });
+
+  // Input manager
+  inputManager.initDOM({
+    gameStage: elements.gameStage,
+    crankContainer: elements.crankContainer,
+    crankArm: elements.crankArm,
+    btnAscend: elements.btnAscend,
+    btnDodgeLeft: elements.btnDodgeLeft,
+    btnDodgeRight: elements.btnDodgeRight,
+    startBtn: elements.startBtn,
+    retryBtn: elements.retryBtn,
+    restartBtn: elements.restartBtn,
+    sfxToggleBtn: elements.sfxToggleBtn,
+    crtToggleBtn: elements.crtToggleBtn
+  });
+
+  // Player manager - load saved state
+  playerManager.loadFromStorage();
+
+  // Set up cross-manager callbacks
+  setupCallbacks();
+}
+
+/**
+ * Set up callbacks between managers
+ */
+function setupCallbacks() {
+  // Player -> Hazard: Check for barrel spawn on altitude change
+  playerManager.onAltitudeChange = (altitude) => {
+    hudManager.updateAltitude(altitude);
+    hudManager.updateStory(altitude);
+    hudManager.updateRank(altitude);
+
+    // Check barrel spawn
+    if (hazardManager.shouldSpawn(altitude)) {
+      hazardManager.trigger(altitude);
+    }
+  };
+
+  playerManager.onLaneChange = (lane, laneName) => {
+    hudManager.updateLane(lane, laneName);
+    // Also tell frame manager to shift lane
+    frameManager.applyLaneShift(lane);
+  };
+
+  playerManager.onTorchChange = (current, max) => {
+    hudManager.updateTorches(current, max);
+  };
+
+  playerManager.onCheckpointReached = (checkpoint) => {
+    console.log(`Checkpoint reached: ${checkpoint}`);
+  };
+
+  playerManager.onGameStart = () => {
+    hudManager.hideTitle();
+    hudManager.hideGameOver();
+    hazardManager.reset();
+    frameManager.reset();
+  };
+
+  playerManager.onGameOver = (reason) => {
+    hudManager.showGameOver(reason);
+    hazardManager.stop();
+    frameManager.showDeathFrame();
+  };
+
+  playerManager.onCadenceUpdate = (cadence) => {
+    hudManager.updateCadence(cadence);
+  };
+
+  // Hazard -> Player: Handle collision
+  hazardManager.setCallbacks({
+    onCollision: (barrelLane, hit) => {
+      if (hit) {
+        playerManager.loseTorch();
+        if (elements.hazardAlert) {
+          elements.hazardAlert.innerText = `⚠ STRUCK! LOST A TORCH (${playerManager.getTorches()} REMAINING)`;
+          elements.hazardAlert.classList.remove('hidden');
+          setTimeout(() => {
+            elements.hazardAlert.classList.add('hidden');
+          }, 1200);
+        }
+      }
+    },
+    onPassed: () => {
+      // Barrel passed safely
+    },
+    onWarningStart: () => {
+      // Warning started
+    },
+    onWarningEnd: () => {
+      // Warning ended, barrel rolling
+    }
+  });
+
+  // Input -> Game actions
+  inputManager.onAscend = (delta) => {
+    // Frame manager handles rendering continuously
+  };
+
+  inputManager.onDodge = (direction) => {
+    const lane = playerManager.getLane();
+    frameManager.applyLaneShift(lane);
+    hudManager.showDodgeFeedback(lane);
+  };
+
+  inputManager.onStartGame = () => {};
+  inputManager.onResume = () => {
+    hazardManager.reset();
+    hudManager.hideGameOver();
+  };
+  inputManager.onRestart = () => {
+    hazardManager.reset();
+    frameManager.reset();
+    hudManager.hideGameOver();
+  };
+  inputManager.onToggleSFX = (enabled) => {
+    hudManager.updateSFXStatus(enabled);
+  };
+  inputManager.onToggleCRT = (enabled) => {
+    hudManager.toggleCRT(enabled);
+  };
+}
+
+/**
+ * Main game loop
+ */
+function gameLoop(currentTime) {
+  const dt = Math.min((currentTime - lastTime) / 1000, 0.1); // Cap at 100ms
+  lastTime = currentTime;
+
+  // Update input and player
+  inputManager.update(dt);
+  playerManager.update(dt);
+
+  // Update hazard with player step for collision detection
+  if (playerManager.isGameStarted && !playerManager.isGameOver) {
+    hazardManager.update(playerManager.getAltitude(), dt);
+
+    // Check for collision if barrel is near player
+    if (hazardManager.isActive()) {
+      const barrelData = hazardManager._getBarrelData();
+      const stepDiff = Math.abs(barrelData.step - playerManager.getAltitude());
+      if (stepDiff < 0.6 && !hazardManager._collisionResolved) {
+        hazardManager._collisionResolved = true;
+        hazardManager.checkCollision(playerManager.getLane());
+      } else if (stepDiff >= 0.6) {
+        hazardManager._collisionResolved = false;
+      }
+    }
+
+    // Update HUD
+    hudManager.updateAll(
+      playerManager.getAltitude(),
+      playerManager.getLane(),
+      playerManager.getLaneName(),
+      playerManager.getTorches(),
+      playerManager.getMaxTorches(),
+      playerManager.getCadence(),
+      playerManager.isGameStarted,
+      playerManager.isGameOver
+    );
+
+    // Sync frame manager with player and hazard state
+    frameManager.updateRenderState(playerManager);
+    frameManager.updateBarrelState(hazardManager);
+    frameManager.render(currentTime);
+  }
+
+  // Continue loop
+  animationId = requestAnimationFrame(gameLoop);
+}
+
+/**
+ * Handle window resize
+ */
+function handleResize() {
+  frameManager.render(performance.now());
+}
+
+/**
+ * Initialize the game
+ */
+async function init() {
+  console.log('Initializing A Fool\'s Errand...');
+
+  // Cache DOM
+  cacheDOMElements();
+
+  // Initialize managers
+  initializeManagers();
+
+  // Show title screen
+  hudManager.showTitle();
+
+  // Initial HUD state (starts at step 0)
+  hudManager.updateAltitude(0);
+  hudManager.updateLane(playerManager.getLane(), playerManager.getLaneName());
+  hudManager.updateStory(0);
+  hudManager.updateTorches(playerManager.getTorches(), playerManager.getMaxTorches());
+  hudManager.updateRank(0);
+  hudManager.updateSFXStatus(playerManager.getSettings().sfxEnabled);
+  hudManager.toggleCRT(playerManager.getSettings().crtEnabled);
+
+  window.addEventListener('resize', handleResize);
+
+  // Start game loop
+  lastTime = performance.now();
+  animationId = requestAnimationFrame(gameLoop);
+
+  console.log('Game initialized successfully!');
+}
+
+// Start when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+
+// Export for debugging
+window.game = {
+  player: playerManager,
+  hazard: hazardManager,
+  frame: frameManager,
+  hud: hudManager,
+  input: inputManager,
+  audio: audioEngine,
+  config: CONFIG
+};
