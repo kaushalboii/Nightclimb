@@ -1,8 +1,0 @@
-
-[dev]
-pytest>=7.0
-black>=23.0
-ruff>=0.1
-
-[windows]
-windows-curses>=2.4
