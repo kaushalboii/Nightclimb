@@ -2,27 +2,48 @@
 
 Terminal arcade collection — **BOUNCE** (Nokia classic) + **SNAKE** (enhanced retro).
 
-## 🚀 Quick Start
+---
 
-### Option 1: Pip Install (Recommended)
+## 🚀 Quick Start — **COPY PASTE THIS INTO TERMINAL.APP:**
+
 ```bash
-pip install git+https://github.com/kaushalboii/Nightclimb.git
-nightclimb          # Runs launcher to pick a game
-bounce              # Runs BOUNCE directly
-snake               # Runs SNAKE directly
+python3 -m pip install git+https://github.com/kaushalboii/Nightclimb.git && export PATH="/Users/kaushal/Library/Python/3.9/bin:$PATH" && nightclimb
 ```
 
-### Option 2: Clone & Run Locally
+**That's it — runs the launcher menu to pick a game.**
+
+---
+
+## Alternative Ways to Run
+
+### After install (add to ~/.zshrc for permanent PATH):
+```bash
+echo 'export PATH="/Users/kaushal/Library/Python/3.9/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+nightclimb      # Launcher menu
+bounce          # BOUNCE directly
+snake           # SNAKE directly
+```
+
+### Without PATH (always works):
+```bash
+python3 -m nightclimb.launcher          # Launcher
+python3 -m nightclimb.games.bounce.main  # BOUNCE
+python3 -m nightclimb.games.snake.main   # SNAKE
+```
+
+### Clone & run locally (no pip):
 ```bash
 git clone https://github.com/kaushalboii/Nightclimb.git
 cd Nightclimb/nightclimb
 python3 run.py
 ```
 
-### Windows
+### Windows:
 ```bash
 pip install windows-curses
-nightclimb
+python3 -m pip install git+https://github.com/kaushalboii/Nightclimb.git
+python3 -m nightclimb.launcher
 ```
 
 ---
@@ -30,21 +51,19 @@ nightclimb
 ## 🎮 Games Included
 
 ### BOUNCE — Nokia Classic Recreation
-Faithful recreation of the Nokia Bounce game with:
 - **12 Levels** — Tutorial → Spike Hell
 - **Authentic Physics** — Gravity, bounce, friction, air/water drag
 - **All Mechanics** — Spikes, moving platforms, breakable blocks, water, stars, exits
 - **Power-ups** — Shield, Double Jump, Speed Boost
-- **Auto-Save** — Progress saved to `~/.bounce_save.json`
+- **Auto-Save** — `~/.bounce_save.json`
 - **Best Times** — Per-level leaderboard
 
 ### SNAKE — Enhanced Retro Classic
-Modern take on the arcade classic with:
 - **5 Game Modes** — Classic, Arcade, Survival, Time Attack, Cozy
 - **Power-ups** — Shield, Speed, Ghost, 2x Score, Slow, Shrink
 - **Special Foods** — Bonus, Poison, Speed, Shrink, Ghost, Multiplier, Shield
-- **Obstacles** — Static blocks in Arcade/Survival modes
-- **High Scores** — Per-mode leaderboards saved to `~/.snake_save.json`
+- **Obstacles** — Static blocks in Arcade/Survival
+- **High Scores** — Per-mode leaderboards in `~/.snake_save.json`
 
 ---
 
@@ -86,13 +105,11 @@ Modern take on the arcade classic with:
 
 ## 💾 Save System
 
-Both games auto-save:
-- **Every 10 seconds** during play
-- **On quit** (Q/Esc) or menu exit
+Auto-saves every 10s + on quit:
 - **BOUNCE**: `~/.bounce_save.json` — level, lives, score, best times
 - **SNAKE**: `~/.snake_save.json` — high scores per mode
 
-To reset progress:
+Reset progress:
 ```bash
 rm ~/.bounce_save.json ~/.snake_save.json
 ```
@@ -101,18 +118,15 @@ rm ~/.bounce_save.json ~/.snake_save.json
 
 ## 🧪 Testing
 
-Run tests for each game:
 ```bash
 # BOUNCE tests
-cd nightclimb
-python3 test_game.py
+python3 -c "import sys; sys.path.insert(0, 'nightclimb'); exec(open('nightclimb/test_game.py').read())"
 
 # SNAKE tests
-cd nightclimb/games/snake
-python3 test_snake.py
+python3 -c "import sys; sys.path.insert(0, 'nightclimb'); exec(open('nightclimb/games/snake/test_snake.py').read())"
 ```
 
-Expected output: `ALL TESTS PASSED ✓`
+Expected: `ALL TESTS PASSED ✓`
 
 ---
 
@@ -121,52 +135,45 @@ Expected output: `ALL TESTS PASSED ✓`
 ```
 Nightclimb/
 ├── nightclimb/                 # Main package
-│   ├── run.py                  # Entry point — run this to play
-│   ├── launcher.py             # Game selector menu
-│   ├── README.md               # Full documentation
-│   ├── test_game.py            # BOUNCE unit tests
+│   ├── run.py                  # Entry point
+│   ├── launcher.py             # Game selector
+│   ├── test_game.py            # BOUNCE tests
 │   ├── games/
 │   │   ├── bounce/             # BOUNCE game
 │   │   │   ├── main.py
-│   │   │   ├── game/
-│   │   │   │   ├── state.py
-│   │   │   │   └── physics.py
-│   │   │   ├── world/
-│   │   │   │   ├── entities.py
-│   │   │   │   └── levels.py
-│   │   │   └── ui/
-│   │   │       ├── render.py
-│   │   │       └── input.py
+│   │   │   ├── game/state.py
+│   │   │   ├── game/physics.py
+│   │   │   ├── world/entities.py
+│   │   │   ├── world/levels.py
+│   │   │   ├── ui/render.py
+│   │   │   └── ui/input.py
 │   │   └── snake/              # SNAKE game
 │   │       ├── main.py
-│   │       ├── game/
-│   │       │   └── state.py
-│   │       ├── world/
-│   │       │   ├── entities.py
-│   │       │   └── levels.py
-│   │       └── ui/
-│   │           ├── render.py
-│   │           └── input.py
+│   │       ├── game/state.py
+│   │       ├── world/entities.py
+│   │       ├── world/levels.py
+│   │       ├── ui/render.py
+│   │       └── ui/input.py
 ├── web/                        # Web version (WIP)
 │   └── index.html
 ├── pyproject.toml              # Package config
 ├── .gitignore
-└── README.md                   # This file
+└── README.md
 ```
 
 ---
 
 ## 📜 License
 
-MIT License — free to use, modify, and distribute.
+MIT License — free to use, modify, distribute.
 
 ---
 
 ## 🤝 Credits
 
 - **BOUNCE Original:** Nokia Bounce (Nokia 3310/5110, ~2008)
-- **SNAKE Original:** Classic arcade game (1976 Blockade → 1997 Nokia Snake)
-- **Recreation:** Built with Python `curses`
+- **SNAKE Original:** Classic arcade (1976 Blockade → 1997 Nokia Snake)
+- **Recreation:** Python `curses`
 
 ---
 
