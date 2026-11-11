@@ -2,6 +2,7 @@
 """Input handling for Snake game."""
 
 import curses
+import time
 
 
 # Key mappings for snake (4-directional)
@@ -15,32 +16,48 @@ PAUSE_KEYS = {ord('p'), ord('P')}
 MENU_KEYS  = {ord('m'), ord('M')}
 RESTART_KEYS = {ord('r'), ord('R')}
 
+# All directional keys for grace period tracking
+DIRECTION_KEYS = UP_KEYS | DOWN_KEYS | LEFT_KEYS | RIGHT_KEYS
+
 
 class InputHandler:
     """Input handling with proper key state tracking for Snake."""
 
+    HOLD_GRACE = 0.15  # Seconds to consider key held after last seen
+
     def __init__(self):
         self.held = set()
         self.pressed = set()
-        self._seen_this_frame = set()
+        self._last_seen = {}
+        self._pressed_this_frame = set()
 
     def poll(self, stdscr):
         """Poll all available key events from curses."""
+        now = time.time()
         self.pressed.clear()
-        self._seen_this_frame.clear()
+        self._pressed_this_frame.clear()
 
         while True:
             key = stdscr.getch()
             if key == -1:
                 break
-            self._seen_this_frame.add(key)
+            self._last_seen[key] = now
             if key not in self.held:
                 self.held.add(key)
                 self.pressed.add(key)
+                self._pressed_this_frame.add(key)
 
-        # Any key that was held but not seen this frame = released
-        released = self.held - self._seen_this_frame
-        self.held -= released
+        # Grace period for direction keys
+        keys_to_release = set()
+        for key in self.held:
+            if key in DIRECTION_KEYS:
+                last = self._last_seen.get(key, 0)
+                if now - last > self.HOLD_GRACE:
+                    keys_to_release.add(key)
+            elif key not in self._pressed_this_frame:
+                keys_to_release.add(key)
+
+        self.held -= keys_to_release
 
     def any_held(self, key_set):
         return any(k in self.held for k in key_set)
@@ -58,8 +75,7 @@ class InputHandler:
 
         self.poll(stdscr)
 
-        # Directional input (held keys work, but we use pressed for responsiveness)
-        # For snake, we want immediate response to direction changes
+        # Directional input - use pressed for immediate response
         if self.any_pressed(UP_KEYS):
             snake.set_direction((0, -1))
         elif self.any_pressed(DOWN_KEYS):

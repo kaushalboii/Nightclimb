@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Input handling for Bounce game - Fixed key state tracking."""
+"""Input handling for Bounce game - Fixed key state tracking with hold grace period."""
 
 import curses
+import time
 
 
 # Key mappings
@@ -15,40 +16,61 @@ RESTART_KEYS = {ord('r'), ord('R')}
 NEXT_KEYS  = {curses.KEY_ENTER, 10, 13, ord('n'), ord('N'), ord(' ')}
 PREV_KEYS  = {ord('b'), ord('B')}
 
+# All movement keys for grace period tracking
+MOVEMENT_KEYS = LEFT_KEYS | RIGHT_KEYS | JUMP_KEYS
+
 
 class InputHandler:
     """
-    Robust input handling with proper key state tracking.
+    Robust input handling with key hold grace period.
 
-    Tracks three sets per frame:
-    - held: keys currently held down (for continuous movement)
-    - pressed: keys pressed THIS frame only (for jump, menu actions)
-    - released: keys released THIS frame (not used but tracked for completeness)
+    Problem: curses nodelay mode doesn't reliably send key repeat events
+    for held keys on many terminals. This causes movement to stop after
+    one frame.
+
+    Solution: Track "last seen" timestamp for each key. Keys are considered
+    "held" for a grace period (HOLD_GRACE) after last being seen. This
+    allows smooth continuous movement even without key repeat events.
     """
 
+    HOLD_GRACE = 0.15  # Seconds to consider key held after last seen (150ms)
+
     def __init__(self):
-        self.held = set()      # Keys currently held
-        self.pressed = set()   # Keys pressed this frame
-        self._seen_this_frame = set()  # Keys seen in current poll()
+        self.held = set()              # Keys currently considered held
+        self.pressed = set()           # Keys pressed this frame (new presses)
+        self._last_seen = {}           # key -> timestamp of last getch() event
+        self._pressed_this_frame = set()  # Keys newly pressed this frame
 
     def poll(self, stdscr):
         """Poll all available key events from curses."""
+        now = time.time()
         self.pressed.clear()
-        self._seen_this_frame.clear()
+        self._pressed_this_frame.clear()
 
         # Read all available keys (non-blocking)
         while True:
             key = stdscr.getch()
             if key == -1:
                 break
-            self._seen_this_frame.add(key)
+            self._last_seen[key] = now
             if key not in self.held:
                 self.held.add(key)
                 self.pressed.add(key)
+                self._pressed_this_frame.add(key)
 
-        # Any key that was held but not seen this frame = released
-        released = self.held - self._seen_this_frame
-        self.held -= released
+        # Grace period: keep movement keys "held" for HOLD_GRACE after last seen
+        # This compensates for terminals that don't send key repeat events
+        keys_to_release = set()
+        for key in self.held:
+            if key in MOVEMENT_KEYS:
+                last = self._last_seen.get(key, 0)
+                if now - last > self.HOLD_GRACE:
+                    keys_to_release.add(key)
+            # Non-movement keys (quit, pause, menu) release immediately when not seen
+            elif key not in self._pressed_this_frame:
+                keys_to_release.add(key)
+
+        self.held -= keys_to_release
 
     def is_held(self, key):
         return key in self.held
@@ -74,7 +96,7 @@ class InputHandler:
 
         self.poll(stdscr)
 
-        # Continuous movement (held keys)
+        # Continuous movement (held keys with grace period)
         ball.input_left = self.any_held(LEFT_KEYS)
         ball.input_right = self.any_held(RIGHT_KEYS)
 

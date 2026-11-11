@@ -38,7 +38,7 @@ def main(stdscr):
 def _main_loop(stdscr):
     # Initialize curses
     curses.curs_set(0)
-    stdscr.nodelay(True)
+    stdscr.timeout(16)  # ~60 FPS, allows key repeat events
     stdscr.keypad(True)
     curses.noecho()
     curses.start_color()
@@ -120,8 +120,7 @@ def _main_loop(stdscr):
         # Render
         renderer.render(state)
 
-        # Frame rate cap ~60 FPS
-        time.sleep(1/60)
+        # Frame rate handled by stdscr.timeout(16) ~60 FPS
 
     # Final save on exit
     state.save(SAVE_FILE)
